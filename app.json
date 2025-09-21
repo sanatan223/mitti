@@ -1,7 +1,30 @@
 {
   "expo": {
-    "name": "mitti",
-    "slug": "mitti",
-    "version": "1.0.0"
+    "name": "SaathiAI",
+    "slug": "saathiai",
+    "scheme": "saathiai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-router"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "defb0e08-4d6d-4125-9a20-46faf7867f0a"
+      }
+    }
   }
 }

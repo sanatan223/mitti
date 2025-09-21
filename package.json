@@ -2,7 +2,7 @@
   "name": "mitti",
   "license": "0BSD",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start --dev-client",
     "android": "expo run:android",
@@ -11,13 +11,24 @@
   },
   "dependencies": {
     "expo": "~54.0.8",
+    "expo-haptics": "~15.0.7",
+    "expo-router": "~6.0.7",
+    "expo-speech": "~14.0.7",
     "expo-status-bar": "~3.0.8",
     "react": "19.1.0",
+    "react-dom": "19.1.0",
     "react-native": "0.81.4",
+    "react-native-maps": "1.20.1",
     "react-native-paper": "^5.14.5",
+    "react-native-reanimated": "~4.1.0",
     "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
     "react-native-vector-icons": "^10.3.0",
-    "react-native-maps": "1.20.1"
+    "react-native-web": "^0.21.0"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "typescript": "~5.9.2"
+  }
 }
