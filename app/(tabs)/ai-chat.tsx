@@ -1,4 +1,5 @@
 import { StyleSheet, View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
 import { Colors } from '../../constants/Colors';
@@ -77,132 +78,134 @@ export default function AIChatScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.header}>
-        <View style={[styles.assistantBadge, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
-          <IconSymbol size={24} name="brain.head.profile" color="white" />
-          <ThemedText style={styles.assistantTitle}>Saathi AI Assistant</ThemedText>
-        </View>
-        <ThemedText style={styles.assistantSubtitle}>
-          Ask me anything about soil health and farming
-        </ThemedText>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primary }}>
+      <ThemedView style={styles.container}>
+        <View style={styles.header}>
+          <View style={[styles.assistantBadge, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
+            <IconSymbol size={24} name="brain.head.profile" color="white" />
+            <ThemedText style={styles.assistantTitle}>Saathi AI Assistant</ThemedText>
+          </View>
+          <ThemedText style={styles.assistantSubtitle}>
+            Ask me anything about soil health and farming
+          </ThemedText>
 
-        {/* Language Selector */}
-        <View style={styles.languageSection}>
-          <TouchableOpacity 
-            style={[
-              styles.languageButton, 
-              selectedLanguage === 'English' && { backgroundColor: Colors[colorScheme ?? 'light'].primary },
-              { backgroundColor: selectedLanguage === 'English' ? Colors[colorScheme ?? 'light'].primary : Colors[colorScheme ?? 'light'].lightGray }
-            ]}
-            onPress={() => setSelectedLanguage('English')}
-          >
-            <ThemedText style={[styles.languageText, selectedLanguage === 'English' && { color: 'white' }]}>
-              English (English)
-            </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[
-              styles.languageButton,
-              { backgroundColor: selectedLanguage === 'Hindi' ? Colors[colorScheme ?? 'light'].primary : Colors[colorScheme ?? 'light'].lightGray }
-            ]}
-            onPress={() => setSelectedLanguage('Hindi')}
-          >
-            <ThemedText style={[styles.languageText, selectedLanguage === 'Hindi' && { color: 'white' }]}>
-              हिंदी (Hindi)
-            </ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[
-              styles.languageButton,
-              { backgroundColor: selectedLanguage === 'Odia' ? Colors[colorScheme ?? 'light'].primary : Colors[colorScheme ?? 'light'].lightGray }
-            ]}
-            onPress={() => setSelectedLanguage('Odia')}
-          >
-            <ThemedText style={[styles.languageText, selectedLanguage === 'Odia' && { color: 'white' }]}>
-              ଓଡ଼ିଆ (Odia)
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <KeyboardAvoidingView 
-        style={styles.chatContainer} 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ScrollView style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
-          {messages.map((message) => (
-            <View key={message.id} style={[
-              styles.messageWrapper,
-              message.isUser ? styles.userMessageWrapper : styles.aiMessageWrapper
-            ]}>
-              {!message.isUser && (
-                <View style={[styles.avatarContainer, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
-                  <IconSymbol size={16} name="brain.head.profile" color="white" />
-                </View>
-              )}
-              <View style={[
-                styles.messageBubble,
-                message.isUser 
-                  ? { backgroundColor: Colors[colorScheme ?? 'light'].primary } 
-                  : { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }
-              ]}>
-                <ThemedText style={[
-                  styles.messageText,
-                  message.isUser && { color: 'white' }
-                ]}>
-                  {message.text}
-                </ThemedText>
-                {!message.isUser && (
-                  <TouchableOpacity 
-                    style={styles.playButton}
-                    onPress={() => handleSpeakMessage(message.text)}
-                  >
-                    <IconSymbol size={16} name="speaker.wave.2" color={Colors[colorScheme ?? 'light'].primary} />
-                    <ThemedText style={styles.playText}>Play in {selectedLanguage}</ThemedText>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          ))}
-        </ScrollView>
-
-        {/* Suggested Questions */}
-        <ScrollView horizontal style={styles.suggestionsContainer} showsHorizontalScrollIndicator={false}>
-          {suggestedQuestions.map((question, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.suggestionButton, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}
-              onPress={() => handleSuggestedQuestion(question)}
-            >
-              <ThemedText style={styles.suggestionText}>{question}</ThemedText>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Input Section */}
-        <View style={styles.inputContainer}>
-          <View style={[styles.inputWrapper, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-            <TouchableOpacity style={styles.micButton}>
-              <IconSymbol size={20} name="mic" color={Colors[colorScheme ?? 'light'].primary} />
-            </TouchableOpacity>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Type your farming question here..."
-              value={inputText}
-              onChangeText={setInputText}
-              multiline
-            />
+          {/* Language Selector */}
+          <View style={styles.languageSection}>
             <TouchableOpacity 
-              style={[styles.sendButton, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}
-              onPress={handleSendMessage}
+              style={[
+                styles.languageButton, 
+                selectedLanguage === 'English' && { backgroundColor: Colors[colorScheme ?? 'light'].primary },
+                { backgroundColor: selectedLanguage === 'English' ? Colors[colorScheme ?? 'light'].primary : Colors[colorScheme ?? 'light'].lightGray }
+              ]}
+              onPress={() => setSelectedLanguage('English')}
             >
-              <IconSymbol size={20} name="paperplane.fill" color="white" />
+              <ThemedText style={[styles.languageText, selectedLanguage === 'English' && { color: 'white' }]}>
+                English (English)
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.languageButton,
+                { backgroundColor: selectedLanguage === 'Hindi' ? Colors[colorScheme ?? 'light'].primary : Colors[colorScheme ?? 'light'].lightGray }
+              ]}
+              onPress={() => setSelectedLanguage('Hindi')}
+            >
+              <ThemedText style={[styles.languageText, selectedLanguage === 'Hindi' && { color: 'white' }]}>
+                हिंदी (Hindi)
+              </ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.languageButton,
+                { backgroundColor: selectedLanguage === 'Odia' ? Colors[colorScheme ?? 'light'].primary : Colors[colorScheme ?? 'light'].lightGray }
+              ]}
+              onPress={() => setSelectedLanguage('Odia')}
+            >
+              <ThemedText style={[styles.languageText, selectedLanguage === 'Odia' && { color: 'white' }]}>
+                ଓଡ଼ିଆ (Odia)
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
-    </ThemedView>
+
+        <KeyboardAvoidingView 
+          style={styles.chatContainer} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <ScrollView style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
+            {messages.map((message) => (
+              <View key={message.id} style={[
+                styles.messageWrapper,
+                message.isUser ? styles.userMessageWrapper : styles.aiMessageWrapper
+              ]}>
+                {!message.isUser && (
+                  <View style={[styles.avatarContainer, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
+                    <IconSymbol size={16} name="brain.head.profile" color="white" />
+                  </View>
+                )}
+                <View style={[
+                  styles.messageBubble,
+                  message.isUser 
+                    ? { backgroundColor: Colors[colorScheme ?? 'light'].primary } 
+                    : { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }
+                ]}>
+                  <ThemedText style={[
+                    styles.messageText,
+                    message.isUser && { color: 'white' }
+                  ]}>
+                    {message.text}
+                  </ThemedText>
+                  {!message.isUser && (
+                    <TouchableOpacity 
+                      style={styles.playButton}
+                      onPress={() => handleSpeakMessage(message.text)}
+                    >
+                      <IconSymbol size={16} name="speaker.wave.2" color={Colors[colorScheme ?? 'light'].primary} />
+                      <ThemedText style={styles.playText}>Play in {selectedLanguage}</ThemedText>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Suggested Questions */}
+          <ScrollView horizontal style={styles.suggestionsContainer} showsHorizontalScrollIndicator={false}>
+            {suggestedQuestions.map((question, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.suggestionButton, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}
+                onPress={() => handleSuggestedQuestion(question)}
+              >
+                <ThemedText style={styles.suggestionText}>{question}</ThemedText>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Input Section */}
+          <View style={styles.inputContainer}>
+            <View style={[styles.inputWrapper, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+              <TouchableOpacity style={styles.micButton}>
+                <IconSymbol size={20} name="mic" color={Colors[colorScheme ?? 'light'].primary} />
+              </TouchableOpacity>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Type your farming question here..."
+                value={inputText}
+                onChangeText={setInputText}
+                multiline
+              />
+              <TouchableOpacity 
+                style={[styles.sendButton, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}
+                onPress={handleSendMessage}
+              >
+                <IconSymbol size={20} name="paperplane.fill" color="white" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </ThemedView>
+    </SafeAreaView>
   );
 }
 

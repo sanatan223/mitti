@@ -1,4 +1,6 @@
 import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
 import { Colors } from '../../constants/Colors';
@@ -31,17 +33,17 @@ export default function DashboardScreen() {
       description: 'Get comprehensive soil health data in seconds with our Agni device.'
     },
     {
-      icon: 'globe.asia.australia.fill',
+      icon: 'earth',
       title: 'Local Language',
       description: 'Receive recommendations in Odia, Hindi, or English with voice support.'
     },
     {
-      icon: 'leaf.fill',
+      icon: 'leaf',
       title: 'Sustainable Farming',
       description: 'AI-powered organic fertilizer recommendations for better crop yield.'
     },
     {
-      icon: 'map.fill',
+      icon: 'map',
       title: 'Field Mapping',
       description: 'Visualize your soil data on interactive maps for better field management.'
     }
@@ -50,129 +52,124 @@ export default function DashboardScreen() {
   const steps = [
     {
       number: 1,
-      icon: 'cable.connector',
+      icon: 'power-plug-outline',
       title: 'Scan Soil with Agni',
       description: 'Insert your Agni device into the soil and press the scan button for instant analysis.'
     },
     {
       number: 2,
-      icon: 'antenna.radiowaves.left.and.right',
+      icon: 'antenna',
       title: 'Connect to Saathi',
       description: 'Automatically sync your data via Bluetooth to the Saathi AI platform.'
     },
     {
       number: 3,
-      icon: 'brain.head.profile',
+      icon: 'brain',
       title: 'Get AI Recommendations',
       description: 'Receive personalized fertilizer advice in your local language with voice playback.'
     }
   ];
 
   return (
-    <ThemedView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <View style={styles.heroContent}>
-            <ThemedText style={styles.heroTitle}>
-              The <ThemedText style={{ color: Colors[colorScheme ?? 'light'].primary, fontSize: 36, fontWeight: 'bold' }}>Organic</ThemedText>
-              {'\n'}Intelligence
-              {'\n'}Platform
-            </ThemedText>
-            <ThemedText style={styles.heroSubtitle}>
-              Empower your farming with AI-driven soil analysis. Connect your Agni device, 
-              get instant soil health insights, and receive personalized recommendations in your local language.
-            </ThemedText>
-            
-            <View style={styles.heroButtons}>
-              <TouchableOpacity 
-                style={[styles.primaryButton, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}
-                onPress={handleConnectDevice}
-              >
-                <IconSymbol size={20} name="antenna.radiowaves.left.and.right" color="white" />
-                <ThemedText style={styles.primaryButtonText}>Connect Your Device</ThemedText>
-              </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primary }}>
+      <ThemedView style={styles.container}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Hero Section */}
+          <View style={styles.heroSection}>
+            <View style={styles.heroContent}>
+              <ThemedText style={styles.heroTitle}>
+                The <ThemedText style={{ color: Colors[colorScheme ?? 'light'].primary, fontSize: 36, fontWeight: 'bold' }}>Organic</ThemedText>
+                {'\n'}Intelligence
+                {'\n'}Platform
+              </ThemedText>
+              <ThemedText style={styles.heroSubtitle}>
+                Empower your farming with AI-driven soil analysis. Connect your Agni device, 
+                get instant soil health insights, and receive personalized recommendations in your local language.
+              </ThemedText>
               
-              <TouchableOpacity 
-                style={[styles.secondaryButton, { borderColor: Colors[colorScheme ?? 'light'].primary }]}
-                onPress={handleViewDemo}
-              >
-                <IconSymbol size={20} name="play.circle" color={Colors[colorScheme ?? 'light'].primary} />
-                <ThemedText style={[styles.secondaryButtonText, { color: Colors[colorScheme ?? 'light'].primary }]}>
-                  View Demo
-                </ThemedText>
-              </TouchableOpacity>
+              <View style={styles.heroButtons}>
+                <TouchableOpacity 
+                  style={[styles.primaryButton, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}
+                  onPress={handleConnectDevice}
+                >
+                  <IconSymbol size={20} name="antenna.radiowaves.left.and.right" color="white" />
+                  <ThemedText style={styles.primaryButtonText}>Connect Your Device</ThemedText>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.secondaryButton, { borderColor: Colors[colorScheme ?? 'light'].primary }]}
+                  onPress={handleViewDemo}
+                >
+                  <IconSymbol size={20} name="play.circle" color={Colors[colorScheme ?? 'light'].primary} />
+                  <ThemedText style={[styles.secondaryButtonText, { color: Colors[colorScheme ?? 'light'].primary }]}>
+                    View Demo
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
-          {/* Device Connection Status */}
-          <View style={[styles.deviceStatus, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-            <IconSymbol size={48} name="antenna.radiowaves.left.and.right" color={Colors[colorScheme ?? 'light'].primary} />
-            <ThemedText style={styles.deviceStatusTitle}>Agni Device Connected</ThemedText>
-            <ThemedText style={styles.deviceStatusSubtitle}>Real-time soil analysis</ThemedText>
+          {/* Live Stats */}
+          <View style={styles.statsSection}>
+            <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+              <ThemedText style={styles.statNumber}>{stats.farmsAnalyzed}</ThemedText>
+              <ThemedText style={styles.statLabel}>Farms Analyzed</ThemedText>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+              <ThemedText style={styles.statNumber}>{stats.soilTests}</ThemedText>
+              <ThemedText style={styles.statLabel}>Soil Tests</ThemedText>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+              <ThemedText style={styles.statNumber}>{stats.aiRecommendations}</ThemedText>
+              <ThemedText style={styles.statLabel}>AI Recommendations</ThemedText>
+            </View>
           </View>
-        </View>
 
-        {/* Live Stats */}
-        <View style={styles.statsSection}>
-          <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-            <ThemedText style={styles.statNumber}>{stats.farmsAnalyzed}</ThemedText>
-            <ThemedText style={styles.statLabel}>Farms Analyzed</ThemedText>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-            <ThemedText style={styles.statNumber}>{stats.soilTests}</ThemedText>
-            <ThemedText style={styles.statLabel}>Soil Tests</ThemedText>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-            <ThemedText style={styles.statNumber}>{stats.aiRecommendations}</ThemedText>
-            <ThemedText style={styles.statLabel}>AI Recommendations</ThemedText>
-          </View>
-        </View>
-
-        {/* Why Choose Saathi AI */}
-        <View style={styles.benefitsSection}>
-          <ThemedText style={styles.sectionTitle}>Why Choose Saathi AI?</ThemedText>
-          <ThemedText style={styles.sectionSubtitle}>
-            Advanced technology meets traditional farming wisdom to maximize your harvest potential.
-          </ThemedText>
-          
-          <View style={styles.benefitsGrid}>
-            {benefits.map((benefit, index) => (
-              <View key={index} style={[styles.benefitCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-                <View style={[styles.benefitIcon, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
-                  <IconSymbol size={24} name={benefit.icon as any} color="white" />
+          {/* Why Choose Saathi AI */}
+          <View style={styles.benefitsSection}>
+            <ThemedText style={styles.sectionTitle}>Why Choose Saathi AI?</ThemedText>
+            <ThemedText style={styles.sectionSubtitle}>
+              Advanced technology meets traditional farming wisdom to maximize your harvest potential.
+            </ThemedText>
+            
+            <View style={styles.benefitsGrid}>
+              {benefits.map((benefit, index) => (
+                <View key={index} style={[styles.benefitCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+                  <View style={[styles.benefitIcon, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
+                    <MaterialCommunityIcons name={benefit.icon as any} size={24} color="white" />
+                  </View>
+                  <ThemedText style={styles.benefitTitle}>{benefit.title}</ThemedText>
+                  <ThemedText style={styles.benefitDescription}>{benefit.description}</ThemedText>
                 </View>
-                <ThemedText style={styles.benefitTitle}>{benefit.title}</ThemedText>
-                <ThemedText style={styles.benefitDescription}>{benefit.description}</ThemedText>
+              ))}
+            </View>
+          </View>
+
+          {/* How It Works */}
+          <View style={styles.stepsSection}>
+            <ThemedText style={styles.sectionTitle}>How It Works</ThemedText>
+            <ThemedText style={styles.sectionSubtitle}>
+              Simple 3-step process to transform your farming approach
+            </ThemedText>
+            
+            {steps.map((step, index) => (
+              <View key={index} style={[styles.stepCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+                <View style={[styles.stepNumber, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
+                  <ThemedText style={styles.stepNumberText}>{step.number}</ThemedText>
+                </View>
+                <View style={[styles.stepIcon, { backgroundColor: Colors[colorScheme ?? 'light'].accent }]}>
+                  <MaterialCommunityIcons name={step.icon as any} size={32} color="white" />
+                </View>
+                <View style={styles.stepContent}>
+                  <ThemedText style={styles.stepTitle}>{step.title}</ThemedText>
+                  <ThemedText style={styles.stepDescription}>{step.description}</ThemedText>
+                </View>
               </View>
             ))}
           </View>
-        </View>
-
-        {/* How It Works */}
-        <View style={styles.stepsSection}>
-          <ThemedText style={styles.sectionTitle}>How It Works</ThemedText>
-          <ThemedText style={styles.sectionSubtitle}>
-            Simple 3-step process to transform your farming approach
-          </ThemedText>
-          
-          {steps.map((step, index) => (
-            <View key={index} style={[styles.stepCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-              <View style={[styles.stepNumber, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
-                <ThemedText style={styles.stepNumberText}>{step.number}</ThemedText>
-              </View>
-              <View style={[styles.stepIcon, { backgroundColor: Colors[colorScheme ?? 'light'].accent }]}>
-                <IconSymbol size={32} name={step.icon as any} color="white" />
-              </View>
-              <View style={styles.stepContent}>
-                <ThemedText style={styles.stepTitle}>{step.title}</ThemedText>
-                <ThemedText style={styles.stepDescription}>{step.description}</ThemedText>
-              </View>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
-    </ThemedView>
+        </ScrollView>
+      </ThemedView>
+    </SafeAreaView>
   );
 }
 
@@ -210,6 +207,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
+    paddingHorizontal: 16,
     borderRadius: 12,
     gap: 8,
   },
