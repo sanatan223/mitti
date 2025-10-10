@@ -26,6 +26,14 @@
       "eas": {
         "projectId": "defb0e08-4d6d-4125-9a20-46faf7867f0a"
       }
+    },
+    "android": {
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT"
+      ],
+      "package": "com.sanatan_dev.saathiai"
     }
   }
 }

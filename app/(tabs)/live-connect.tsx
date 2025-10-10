@@ -44,6 +44,11 @@ export default function LiveConnectScreen() {
 
     manager.startDeviceScan(null, null, (error, device) => {
       if (error) {
+        if (error.message === "BluetoothLE is powered off"){
+          setIsScanning(false);
+          Alert.alert("Error", "Please turn on Bluetooth to scan for devices.");
+          return false;
+        }
         console.error(error);
         setIsScanning(false);
         return false;
@@ -148,7 +153,7 @@ export default function LiveConnectScreen() {
                   <ActivityIndicator size="large" color="#4CAF50" />
                   <Text style={styles.scanningText}>Scanning for devices...</Text>
                 </View>
-              )};
+              )}
 
               <ScrollView style={styles.devicesList}>
                 {devices.map(device => (

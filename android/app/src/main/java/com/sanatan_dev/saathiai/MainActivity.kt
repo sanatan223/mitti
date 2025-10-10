@@ -1,4 +1,4 @@
-package com.mitti
+package com.sanatan_dev.saathiai
 
 import android.os.Build
 import android.os.Bundle

@@ -1,4 +1,4 @@
-import { StyleSheet, View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { StyleSheet, View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
@@ -17,151 +17,266 @@ interface Message {
 
 export default function AIChatScreen() {
   const colorScheme = useColorScheme();
+  const [loading, setLoading] = useState(false);
+  const [inputText, setInputText] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
       text: "Hello! I'm your Saathi AI Assistant. Ask me anything about soil health and farming in Odia, Hindi, or English.",
       isUser: false,
-      timestamp: new Date()
+      timestamp: new Date(),
+    },
+  ]);
+
+  const [conversationHistory, setConversationHistory] = useState([
+    {
+      role: 'system',
+      content: `
+        You are "Saathi AI", an agricultural expert who helps farmers analyze soil and gives advice.
+        You should always remember the previous soil analysis and refer to it if user asks follow-up questions.
+        Keep tone friendly, structured, and easy to read aloud.
+      `
     }
   ]);
-  const [inputText, setInputText] = useState('');
-  const [selectedLanguage, setSelectedLanguage] = useState('English');
 
-  const suggestedQuestions = [
-    "How to improve phosphorus naturally?",
-    "What does acidic soil mean?",
-    "Organic nitrogen sources?",
-    "Best crops for my soil type?"
-  ];
 
-  const handleSendMessage = () => {
-    if (inputText.trim()) {
-      const userMessage: Message = {
-        id: messages.length + 1,
-        text: inputText,
-        isUser: true,
-        timestamp: new Date()
-      };
+  const soilData = {
+    ph: 5.2,
+    moisture: 22,
+    nitrogen: 18,
+    phosphorus: 35,
+    potassium: 15,
+    organic_matter: 2.1,
+  };
 
-      const aiResponse: Message = {
-        id: messages.length + 2,
-        text: `Thank you for your question about "${inputText}". This is a demo response. In the full app, I would provide detailed agricultural advice in your selected language (${selectedLanguage}).`,
+  // 🔹 Unified AI call (used by both soil analysis & chat)
+  const sendToAI = async (newUserMessage: string) => {
+    setLoading(true);
+    try {
+      const updatedHistory = [...conversationHistory, { role: 'user', content: newUserMessage }];
+      setConversationHistory(updatedHistory);
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer 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`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: updatedHistory,
+        }),
+      });
+
+      const data = await response.json();
+      const aiText = data?.choices?.[0]?.message?.content ?? 'Sorry, no response.';
+
+      const aiMessage: Message = {
+        id: Date.now() + Math.random(),
+        text: aiText,
         isUser: false,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
-      setMessages([...messages, userMessage, aiResponse]);
-      setInputText('');
+
+      setMessages((prev) => [...prev, aiMessage]);
+      setConversationHistory((prev) => [...prev, { role: 'assistant', content: aiText }]);
+
+      handleSpeakMessage(aiText);
+    } catch (error) {
+      console.error('AI Error:', error);
+      Alert.alert('Error', 'Failed to get AI response.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSuggestedQuestion = (question: string) => {
-    setInputText(question);
+  // 🔹 Generate initial soil analysis
+  const handleGetSuggestion = async () => {
+    setLoading(true);
+    try {
+      const prompt = `
+      Analyze the following soil data and give a spoken expert analysis.
+      Include: 
+      1. Soil type (acidic/basic/neutral)
+      2. Nutrient deficiencies
+      3. Recommendations to improve quality
+      4. Best crops to grow
+      5. Speak like an expert guiding a farmer in ${selectedLanguage}.
+
+      ${JSON.stringify(soilData)}
+      `;
+
+      await sendToAI(prompt);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSpeakMessage = (text: string) => {
-    const languageCode = selectedLanguage === 'Hindi' ? 'hi-IN' : 
-                        selectedLanguage === 'Odia' ? 'hi-IN' : 'en-US'; // Odia fallback to Hindi
-    
+  // 🔹 User sends a chat message
+  const handleSendMessage = async () => {
+    if (!inputText.trim()) return;
+    const userMessage: Message = {
+      id: Date.now() + Math.random(),
+      text: inputText.trim(),
+      isUser: true,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    const question = inputText.trim();
+    setInputText('');
+    await sendToAI(question);
+  };
+
+
+  const handleSpeakMessage = async (text: string) => {
+    const currentlySpeaking = await Speech.isSpeakingAsync();
+
+    if (currentlySpeaking) {
+      Speech.stop();
+      setIsSpeaking(false);
+      return;
+    }
+
+    setIsSpeaking(true);
+
     Speech.speak(text, {
-      language: languageCode,
+      language: selectedLanguage === 'Hindi' ? 'hi-IN' : 'en-US',
       pitch: 1.0,
-      rate: 0.8,
-      onStart: () => console.log('Speech started'),
-      onDone: () => console.log('Speech finished'),
-      onError: (error) => {
-        console.error('Speech error:', error);
-        Alert.alert('Error', 'Could not play speech');
-      }
+      rate: 0.85,
+      onDone: () => setIsSpeaking(false),
+      onStopped: () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false),
     });
   };
 
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primary }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].primary }}>
       <ThemedView style={styles.container}>
+        {/* HEADER */}
         <View style={styles.header}>
-          <View style={[styles.assistantBadge, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
+          <View
+            style={[
+              styles.assistantBadge,
+              { backgroundColor: Colors[colorScheme ?? 'light'].primary },
+            ]}
+          >
             <IconSymbol size={24} name="brain.head.profile" color="white" />
             <ThemedText style={styles.assistantTitle}>Saathi AI Assistant</ThemedText>
           </View>
+
+          <TouchableOpacity
+            style={[
+              styles.assistantBadge,
+              { backgroundColor: Colors[colorScheme ?? 'light'].primary },
+            ]}
+            onPress={handleGetSuggestion}
+          >
+            <IconSymbol size={24} name="leaf" color="white" />
+            <ThemedText style={styles.assistantTitle}>Analyze Soil</ThemedText>
+          </TouchableOpacity>
+
           <ThemedText style={styles.assistantSubtitle}>
-            Ask me anything about soil health and farming
+            Ask me anything about soil health and farming.
           </ThemedText>
 
-          {/* Language Selector */}
+          {/* LANGUAGE SWITCHER */}
           <View style={styles.languageSection}>
-            <TouchableOpacity 
-              style={[
-                styles.languageButton, 
-                selectedLanguage === 'English' && { backgroundColor: Colors[colorScheme ?? 'light'].primary },
-                { backgroundColor: selectedLanguage === 'English' ? Colors[colorScheme ?? 'light'].primary : Colors[colorScheme ?? 'light'].lightGray }
-              ]}
-              onPress={() => setSelectedLanguage('English')}
-            >
-              <ThemedText style={[styles.languageText, selectedLanguage === 'English' && { color: 'white' }]}>
-                English (English)
-              </ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[
-                styles.languageButton,
-                { backgroundColor: selectedLanguage === 'Hindi' ? Colors[colorScheme ?? 'light'].primary : Colors[colorScheme ?? 'light'].lightGray }
-              ]}
-              onPress={() => setSelectedLanguage('Hindi')}
-            >
-              <ThemedText style={[styles.languageText, selectedLanguage === 'Hindi' && { color: 'white' }]}>
-                हिंदी (Hindi)
-              </ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[
-                styles.languageButton,
-                { backgroundColor: selectedLanguage === 'Odia' ? Colors[colorScheme ?? 'light'].primary : Colors[colorScheme ?? 'light'].lightGray }
-              ]}
-              onPress={() => setSelectedLanguage('Odia')}
-            >
-              <ThemedText style={[styles.languageText, selectedLanguage === 'Odia' && { color: 'white' }]}>
-                ଓଡ଼ିଆ (Odia)
-              </ThemedText>
-            </TouchableOpacity>
+            {['English', 'Hindi', 'Odia'].map((lang) => (
+              <TouchableOpacity
+                key={lang}
+                style={[
+                  styles.languageButton,
+                  {
+                    backgroundColor:
+                      selectedLanguage === lang
+                        ? Colors[colorScheme ?? 'light'].primary
+                        : Colors[colorScheme ?? 'light'].lightGray,
+                  },
+                ]}
+                onPress={() => setSelectedLanguage(lang)}
+              >
+                <ThemedText
+                  style={[
+                    styles.languageText,
+                    selectedLanguage === lang && { color: 'white' },
+                  ]}
+                >
+                  {lang === 'English'
+                    ? 'English'
+                    : lang === 'Hindi'
+                    ? 'हिंदी (Hindi)'
+                    : 'ଓଡ଼ିଆ (Odia)'}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
-        <KeyboardAvoidingView 
-          style={styles.chatContainer} 
+        {/* CHAT */}
+        <KeyboardAvoidingView
+          style={styles.chatContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <ScrollView style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
             {messages.map((message) => (
-              <View key={message.id} style={[
-                styles.messageWrapper,
-                message.isUser ? styles.userMessageWrapper : styles.aiMessageWrapper
-              ]}>
+              <View
+                key={message.id}
+                style={[
+                  styles.messageWrapper,
+                  message.isUser ? styles.userMessageWrapper : styles.aiMessageWrapper,
+                ]}
+              >
                 {!message.isUser && (
-                  <View style={[styles.avatarContainer, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
+                  <View
+                    style={[
+                      styles.avatarContainer,
+                      { backgroundColor: Colors[colorScheme ?? 'light'].primary },
+                    ]}
+                  >
                     <IconSymbol size={16} name="brain.head.profile" color="white" />
                   </View>
                 )}
-                <View style={[
-                  styles.messageBubble,
-                  message.isUser 
-                    ? { backgroundColor: Colors[colorScheme ?? 'light'].primary } 
-                    : { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }
-                ]}>
-                  <ThemedText style={[
-                    styles.messageText,
-                    message.isUser && { color: 'white' }
-                  ]}>
-                    {message.text}
-                  </ThemedText>
+                <View
+                  style={[
+                    styles.messageBubble,
+                    message.isUser
+                      ? { backgroundColor: Colors[colorScheme ?? 'light'].primary }
+                      : { backgroundColor: Colors[colorScheme ?? 'light'].lightGray },
+                  ]}
+                >
+                  {loading && message.id === messages.length ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={Colors[colorScheme ?? 'light'].primary}
+                    />
+                  ) : (
+                    <ThemedText
+                      style={[
+                        styles.messageText,
+                        message.isUser && { color: 'white' },
+                      ]}
+                    >
+                      {message.text}
+                    </ThemedText>
+                  )}
                   {!message.isUser && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.playButton}
                       onPress={() => handleSpeakMessage(message.text)}
                     >
-                      <IconSymbol size={16} name="speaker.wave.2" color={Colors[colorScheme ?? 'light'].primary} />
-                      <ThemedText style={styles.playText}>Play in {selectedLanguage}</ThemedText>
+                      <IconSymbol
+                        size={16}
+                        name="speaker.wave.2"
+                        color={Colors[colorScheme ?? 'light'].primary}
+                      />
+                      <ThemedText style={styles.playText}>
+                        {isSpeaking ? 'Stop' : `Play in ${selectedLanguage}`}
+                      </ThemedText>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -169,24 +284,20 @@ export default function AIChatScreen() {
             ))}
           </ScrollView>
 
-          {/* Suggested Questions */}
-          <ScrollView horizontal style={styles.suggestionsContainer} showsHorizontalScrollIndicator={false}>
-            {suggestedQuestions.map((question, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[styles.suggestionButton, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}
-                onPress={() => handleSuggestedQuestion(question)}
-              >
-                <ThemedText style={styles.suggestionText}>{question}</ThemedText>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Input Section */}
+          {/* INPUT */}
           <View style={styles.inputContainer}>
-            <View style={[styles.inputWrapper, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+            <View
+              style={[
+                styles.inputWrapper,
+                { backgroundColor: Colors[colorScheme ?? 'light'].lightGray },
+              ]}
+            >
               <TouchableOpacity style={styles.micButton}>
-                <IconSymbol size={20} name="mic" color={Colors[colorScheme ?? 'light'].primary} />
+                <IconSymbol
+                  size={20}
+                  name="mic"
+                  color={Colors[colorScheme ?? 'light'].primary}
+                />
               </TouchableOpacity>
               <TextInput
                 style={styles.textInput}
@@ -195,8 +306,11 @@ export default function AIChatScreen() {
                 onChangeText={setInputText}
                 multiline
               />
-              <TouchableOpacity 
-                style={[styles.sendButton, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  { backgroundColor: Colors[colorScheme ?? 'light'].primary },
+                ]}
                 onPress={handleSendMessage}
               >
                 <IconSymbol size={20} name="paperplane.fill" color="white" />
@@ -295,19 +409,6 @@ const styles = StyleSheet.create({
   playText: {
     fontSize: 12,
     opacity: 0.7,
-  },
-  suggestionsContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  suggestionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-  },
-  suggestionText: {
-    fontSize: 14,
   },
   inputContainer: {
     padding: 16,

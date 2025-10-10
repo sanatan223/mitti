@@ -5,9 +5,13 @@ import { ThemedView } from '../../components/ThemedView';
 import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { IconSymbol } from '../../components/ui/IconSymbol';
+//import MapView, { Marker, Region } from 'react-native-maps';
+import { useState, useRef } from 'react';
 
 export default function HistoryScreen() {
   const colorScheme = useColorScheme();
+  //const mapRef = useRef<MapView>(null);
+  const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
 
   const testHistory = [
     {
@@ -49,6 +53,36 @@ export default function HistoryScreen() {
     totalTests: 15,
     avgPH: 6.5,
     improvement: '+0.3'
+  };
+
+  // Set the initial region for the map. We'll center it on the first item in the history.
+  {/*}
+  const initialRegion: Region = testHistory.length > 0 ? {
+    latitude: testHistory[0].latitude,
+    longitude: testHistory[0].longitude,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  } : {
+    latitude: 0,
+    longitude: 0,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  };
+  */}
+  // Function to center the map on a specific marker
+  const onLocationPress = (id: number, latitude: number, longitude: number) => {
+    setSelectedLocation(id);
+    {/*}
+    mapRef.current?.animateToRegion(
+      {
+        latitude,
+        longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+      1000 // Animation duration in milliseconds
+    );
+    */}
   };
 
   return (
@@ -95,39 +129,40 @@ export default function HistoryScreen() {
             </View>
           </View>
 
-          {/* Interactive Map Placeholder */}
+          {/* Interactive Map */}
           <View style={styles.mapSection}>
             <ThemedText style={styles.mapTitle}>Field Test Locations</ThemedText>
             <View style={styles.mapContainer}>
-              <View style={[styles.map, styles.mapPlaceholder, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-                <IconSymbol size={48} name="map" color={Colors[colorScheme ?? 'light'].secondary} />
-                <ThemedText style={styles.mapPlaceholderText}>Interactive Map</ThemedText>
-                <ThemedText style={styles.mapPlaceholderSubtext}>
-                  Interactive maps will be available once you provide the Google Maps API key. Field locations will be displayed with color-coded pH indicators.
-                </ThemedText>
-                
-                {/* Location List */}
-                <View style={styles.locationList}>
-                  {testHistory.map((test) => (
-                    <View key={test.id} style={[styles.locationItem, { backgroundColor: Colors[colorScheme ?? 'light'].neutral }]}>
-                      <View style={[styles.locationPin, { backgroundColor: test.color }]} />
-                      <View style={styles.locationInfo}>
-                        <ThemedText style={styles.locationName}>{test.location}</ThemedText>
-                        <ThemedText style={styles.locationDetails}>pH: {test.pH} - {test.status}</ThemedText>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </View>
+              {/*
+              <MapView
+                ref={mapRef}
+                style={styles.map}
+                initialRegion={initialRegion}
+              >
+                {testHistory.map((test) => (
+                  <Marker
+                    key={test.id}
+                    coordinate={{ latitude: test.latitude, longitude: test.longitude }}
+                    title={test.location}
+                    description={`pH: ${test.pH} - ${test.status}`}
+                    pinColor={test.color} // Use a prop for the pin color
+                  />
+                ))}
+              </MapView>
+            */}
             </View>
           </View>
 
           {/* Test History Log */}
           <View style={styles.historySection}>
             <ThemedText style={styles.historyTitle}>Test History Log</ThemedText>
-            <ScrollView style={styles.historyList}>
+            <View style={styles.historyList}>
               {testHistory.map((test) => (
-                <View key={test.id} style={[styles.historyItem, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+                <TouchableOpacity
+                  key={test.id}
+                  style={[styles.historyItem, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}
+                  //onPress={() => onLocationPress(test.id, test.latitude, test.longitude)}
+                >
                   <View style={[styles.statusIndicator, { backgroundColor: test.color }]} />
                   <View style={styles.historyContent}>
                     <ThemedText style={styles.historyLocation}>{test.location}</ThemedText>
@@ -136,10 +171,11 @@ export default function HistoryScreen() {
                     </ThemedText>
                   </View>
                   <IconSymbol size={20} name="chevron.right" color={Colors[colorScheme ?? 'light'].icon} />
-                </View>
+                </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
           </View>
+
         </ScrollView>
       </ThemedView>
     </SafeAreaView>
@@ -214,12 +250,13 @@ const styles = StyleSheet.create({
   },
   mapSection: {
     marginBottom: 24,
-    paddingHorizontal: 24,
+    paddingHorizontal: 0,
   },
   mapTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
+    paddingHorizontal: 24,
   },
   mapContainer: {
     height: 250,
@@ -227,52 +264,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   map: {
-    flex: 1,
-  },
-  mapPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-  },
-  mapPlaceholderText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  mapPlaceholderSubtext: {
-    fontSize: 14,
-    opacity: 0.7,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  locationList: {
-    width: '100%',
-    gap: 8,
-  },
-  locationItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    gap: 12,
-  },
-  locationPin: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  locationInfo: {
-    flex: 1,
-  },
-  locationName: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  locationDetails: {
-    fontSize: 12,
-    opacity: 0.7,
+    ...StyleSheet.absoluteFillObject,
   },
   historySection: {
     flex: 1,
