@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
@@ -8,6 +8,8 @@ import { IconSymbol } from '../../components/ui/IconSymbol';
 import { useState } from 'react';
 
 export default function AboutScreen() {
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState({ type: null, message: '' });
   const colorScheme = useColorScheme();
   const [contactForm, setContactForm] = useState({
     name: '',
@@ -18,21 +20,15 @@ export default function AboutScreen() {
   const teamMembers = [
     {
       id: 1,
-      name: 'Dr. Priya Sharma',
-      role: 'Lead Agricultural Scientist',
-      description: '15+ years in soil science and precision agriculture research'
+      name: 'Nilambar Behera',
+      role: 'Project Manager & Hardware Manufacturer',
+      description: 'BCA graduate with interest in agricultural technology solutions'
     },
     {
       id: 2,
-      name: 'Rajesh Patel',
-      role: 'AI & Technology Lead',
-      description: 'Expert in machine learning algorithms and IoT device development'
-    },
-    {
-      id: 3,
-      name: 'Meera Das',
-      role: 'Community Outreach Manager',
-      description: 'Connecting technology with farming communities across India'
+      name: 'Sanatan Sethi',
+      role: 'Software Engineer & AI Specialist',
+      description: 'Software engineer with experties in web and mobile app development'
     }
   ];
 
@@ -54,14 +50,65 @@ export default function AboutScreen() {
     }
   ];
 
-  const handleSubmitContact = () => {
-    if (contactForm.name && contactForm.email && contactForm.message) {
-      Alert.alert('Thank You!', 'Your message has been sent. We will get back to you soon.');
-      setContactForm({ name: '', email: '', message: '' });
-    } else {
+  const FORMSPREE_ENDPOINT_URL = 'https://formspree.io/f/xdkwwpej'; 
+
+  const handleSubmitContact = async () => {
+    if (!contactForm.name || !contactForm.email || !contactForm.message) {
       Alert.alert('Error', 'Please fill in all fields.');
+      return;
     }
+
+    setLoading(true);
+    setStatus({ type: null, message: '' }); 
+
+    try {
+      const formData = {
+        name: contactForm.name,
+        _replyto: contactForm.email, 
+        message: contactForm.message,
+      };
+
+      console.log('Sending data to third-party service:', formData);
+      
+      const response = await fetch(FORMSPREE_ENDPOINT_URL, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json' 
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        let errorMsg = 'The form submission failed on the service side.';
+        try {
+            const errorData = await response.json(); 
+            errorMsg = errorData.error || errorMsg;
+        } catch (e) {
+            console.error('Error parsing error response:', e);
+        }
+        throw new Error(errorMsg);
+      }
+      
+      setStatus({ type: 'success', message: 'Success! Your message has been sent to the recipients.' });
+      
+      setContactForm({ name: '', email: '', message: '' });
+
+    } catch (error) {
+      console.error('Submission error:', error);
+      setStatus({ type: 'error', message: `Submission Failed: ${error.message || 'Could not connect to the form handling service.'}` });
+    } finally {
+      setLoading(false);
+    }
+
+    setTimeout(() => {
+      setStatus({ type: null, message: '' });
+    }, 5000);
   };
+
+  const statusBackgroundColor = status.type === 'success' ? '#d4edda' : '#f8d7da';
+  const statusBorderColor = status.type === 'success' ? '#c3e6cb' : '#f5c6cb';
+  const statusTextColor = status.type === 'success' ? '#155724' : '#721c24';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primary }}>
@@ -165,35 +212,36 @@ export default function AboutScreen() {
             <View style={styles.contactInfo}>
               <View style={styles.contactItem}>
                 <IconSymbol size={20} name="location.fill" color={Colors[colorScheme ?? 'light'].primary} />
-                <ThemedText style={styles.contactText}>Bhubaneswar, Odisha, India</ThemedText>
-              </View>
-              <View style={styles.contactItem}>
-                <IconSymbol size={20} name="phone.fill" color={Colors[colorScheme ?? 'light'].primary} />
-                <ThemedText style={styles.contactText}>+91 98765 43210</ThemedText>
-              </View>
-              <View style={styles.contactItem}>
-                <IconSymbol size={20} name="envelope.fill" color={Colors[colorScheme ?? 'light'].primary} />
-                <ThemedText style={styles.contactText}>info@saathiai.com</ThemedText>
+                <ThemedText style={styles.contactText}>Bhadrak auto. College, Bhadrak, Odisha, 756100</ThemedText>
               </View>
             </View>
+
+            {status.type && (
+              <View style={[styles.statusBox, { backgroundColor: statusBackgroundColor, borderColor: statusBorderColor }]}>
+                <ThemedText style={[styles.statusText, { color: statusTextColor }]}>{status.message}</ThemedText>
+              </View>
+            )}
 
             <View style={[styles.contactForm, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
               <ThemedText style={styles.formTitle}>Send us a Message</ThemedText>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: Colors[colorScheme ?? 'light'].background, color: Colors[colorScheme ?? 'light'].text }]}
+                placeholderTextColor={Colors[colorScheme == 'light' ?'dark':'light'].lightGray}
                 placeholder="Full Name"
                 value={contactForm.name}
                 onChangeText={(text) => setContactForm({...contactForm, name: text})}
               />
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: Colors[colorScheme ?? 'light'].background, color: Colors[colorScheme ?? 'light'].text }]}
+                placeholderTextColor={Colors[colorScheme == 'light' ?'dark':'light'].background}
                 placeholder="Email Address"
                 value={contactForm.email}
                 onChangeText={(text) => setContactForm({...contactForm, email: text})}
                 keyboardType="email-address"
               />
               <TextInput
-                style={[styles.input, styles.messageInput]}
+                style={[styles.input, styles.messageInput, { backgroundColor: Colors[colorScheme ?? 'light'].background, color: Colors[colorScheme ?? 'light'].text }]}
+                placeholderTextColor={Colors[colorScheme == 'light' ?'dark':'light'].background}
                 placeholder="Tell us about your farming needs"
                 value={contactForm.message}
                 onChangeText={(text) => setContactForm({...contactForm, message: text})}
@@ -204,7 +252,11 @@ export default function AboutScreen() {
                 style={[styles.submitButton, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}
                 onPress={handleSubmitContact}
               >
-                <ThemedText style={styles.submitButtonText}>Send Message</ThemedText>
+                {loading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <ThemedText style={styles.submitButtonText}>Send Message</ThemedText>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -361,6 +413,16 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 16,
+  },
+  statusBox: {
+    padding: 12,
+    marginBottom: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   contactForm: {
     padding: 20,

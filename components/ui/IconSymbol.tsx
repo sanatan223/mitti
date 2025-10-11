@@ -22,6 +22,13 @@ const MAPPING = {
   'chart.line.uptrend.xyaxis': 'trending-up',
   'message.fill': 'chat',
   'info.circle.fill': 'info',
+  'leaf.fill': 'eco',
+  'cpu': 'memory',
+  'brain.head.profile': 'psychology',
+  'globe.americas': 'public',
+  'person.fill': 'person',
+  'person.crop.circle.fill': 'account-circle',
+  'location.fill': 'location-on',
 } as IconMapping;
 
 /**

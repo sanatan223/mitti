@@ -88,7 +88,7 @@ export default function HistoryScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primary }}>
       <ThemedView style={styles.container}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
 
           <ThemedText style={styles.title}>History & Analytics</ThemedText>
           <ThemedText style={styles.subtitle}>
