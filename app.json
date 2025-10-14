@@ -1,39 +1,17 @@
 {
   "expo": {
-    "name": "SaathiAI",
-    "slug": "saathiai",
-    "scheme": "saathiai",
+    "name": "Saathi",
+    "slug": "saathi",
+    "scheme": "saathi",
     "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "updates": {
-      "fallbackToCacheTimeout": 0
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "plugins": [
-      "expo-router",
-      "react-native-ble-plx"
-    ],
     "extra": {
-      "router": {},
       "eas": {
-        "projectId": "defb0e08-4d6d-4125-9a20-46faf7867f0a"
+        "projectId": "df1dc99a-497f-4a03-99fb-003772f87cc2"
       }
     },
+    "owner": "sanatan_dev",
     "android": {
-      "permissions": [
-        "android.permission.BLUETOOTH",
-        "android.permission.BLUETOOTH_ADMIN",
-        "android.permission.BLUETOOTH_CONNECT"
-      ],
-      "package": "com.sanatan_dev.saathiai"
+      "package": "com.sanatan_dev.saathi"
     }
   }
 }

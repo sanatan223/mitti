@@ -8,6 +8,8 @@ import { IconSymbol } from '../../components/ui/IconSymbol';
 import { useState } from 'react';
 import * as Speech from 'expo-speech';
 
+
+
 interface Message {
   id: number;
   text: string;
@@ -16,8 +18,8 @@ interface Message {
 }
 
 export default function AIChatScreen() {
+
   const colorScheme = useColorScheme();
-  const [loading, setLoading] = useState(false);
   const [inputText, setInputText] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -54,10 +56,18 @@ export default function AIChatScreen() {
 
   // 🔹 Unified AI call (used by both soil analysis & chat)
   const sendToAI = async (newUserMessage: string) => {
-    setLoading(true);
     try {
       const updatedHistory = [...conversationHistory, { role: 'user', content: newUserMessage }];
       setConversationHistory(updatedHistory);
+
+      const tempMessageId = Date.now();
+      const loadingMessage: Message = {
+        id: tempMessageId,
+        text: 'Thinking...',
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, loadingMessage]);
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -74,46 +84,35 @@ export default function AIChatScreen() {
       const data = await response.json();
       const aiText = data?.choices?.[0]?.message?.content ?? 'Sorry, no response.';
 
-      const aiMessage: Message = {
-        id: Date.now() + Math.random(),
-        text: aiText,
-        isUser: false,
-        timestamp: new Date(),
-      };
-
-
-      setMessages((prev) => [...prev, aiMessage]);
+      const aiMessage = { id: tempMessageId, text: aiText, isUser: false, timestamp: new Date() };
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === tempMessageId ? aiMessage : msg))
+      );
+      
       setConversationHistory((prev) => [...prev, { role: 'assistant', content: aiText }]);
 
       handleSpeakMessage(aiText);
     } catch (error) {
       console.error('AI Error:', error);
       Alert.alert('Error', 'Failed to get AI response.');
-    } finally {
-      setLoading(false);
     }
   };
 
   // 🔹 Generate initial soil analysis
   const handleGetSuggestion = async () => {
-    setLoading(true);
-    try {
-      const prompt = `
-      Analyze the following soil data and give a spoken expert analysis.
-      Include: 
-      1. Soil type (acidic/basic/neutral)
-      2. Nutrient deficiencies
-      3. Recommendations to improve quality
-      4. Best crops to grow
-      5. Speak like an expert guiding a farmer in ${selectedLanguage}.
+    const prompt = `
+    Analyze the following soil data and give a spoken expert analysis.
+    Include: 
+    1. Soil type (acidic/basic/neutral)
+    2. Nutrient deficiencies
+    3. Recommendations to improve quality
+    4. Best crops to grow
+    5. Speak like an expert guiding a farmer in ${selectedLanguage}.
 
-      ${JSON.stringify(soilData)}
-      `;
+    ${JSON.stringify(soilData)}
+    `;
 
-      await sendToAI(prompt);
-    } finally {
-      setLoading(false);
-    }
+    await sendToAI(prompt);
   };
 
   // 🔹 User sends a chat message
@@ -249,21 +248,16 @@ export default function AIChatScreen() {
                       : { backgroundColor: Colors[colorScheme ?? 'light'].lightGray },
                   ]}
                 >
-                  {loading && message.id === messages.length ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={Colors[colorScheme ?? 'light'].primary}
-                    />
+                  {message.text === 'Thinking...' ? (
+                    <ActivityIndicator size="small" color={Colors[colorScheme ?? 'light'].primary} />
                   ) : (
                     <ThemedText
-                      style={[
-                        styles.messageText,
-                        message.isUser && { color: 'white' },
-                      ]}
+                      style={[styles.messageText, message.isUser && { color: 'white' }]}
                     >
                       {message.text}
                     </ThemedText>
                   )}
+
                   {!message.isUser && (
                     <TouchableOpacity
                       style={styles.playButton}
@@ -295,12 +289,12 @@ export default function AIChatScreen() {
               <TouchableOpacity style={styles.micButton}>
                 <IconSymbol
                   size={20}
-                  name="mic"
+                  name="mic.fill"
                   color={Colors[colorScheme ?? 'light'].primary}
                 />
               </TouchableOpacity>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { color: Colors[colorScheme ?? 'light'].text }]}
                 placeholder="Type your farming question here..."
                 value={inputText}
                 onChangeText={setInputText}

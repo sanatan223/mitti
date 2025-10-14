@@ -1,4 +1,4 @@
-package com.sanatan_dev.saathiai
+package com.sanatan_dev.saathi
 
 import android.os.Build
 import android.os.Bundle

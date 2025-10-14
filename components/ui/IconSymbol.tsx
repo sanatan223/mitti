@@ -18,7 +18,6 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
-  'antenna.radiowaves.left.and.right': 'wifi',
   'chart.line.uptrend.xyaxis': 'trending-up',
   'message.fill': 'chat',
   'info.circle.fill': 'info',
@@ -29,6 +28,9 @@ const MAPPING = {
   'person.fill': 'person',
   'person.crop.circle.fill': 'account-circle',
   'location.fill': 'location-on',
+  'checkmark.circle.fill': 'check-circle',
+  'antenna.radiowaves.left.and.right': 'bluetooth-disabled',
+  'mic.fill': 'mic',
 } as IconMapping;
 
 /**

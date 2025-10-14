@@ -71,15 +71,21 @@ export default function LiveConnectScreen() {
     setIsConnected(true);
     setIsConnecting(false);
     setIsScanning(false);
-    setSoilData({
-      pH: 6.8,
-      nitrogen: 85,
-      phosphorus: 42,
-      potassium: 156,
-      moisture: 68,
-      temperature: 24,
-      ec: 1.2,
-    });
+    function randomBetween(min, max) {
+      return +(Math.random() * (max - min) + min).toFixed(2);
+    }
+
+    const mockData = {
+      pH: randomBetween(5.5, 8.0),          // typical soil pH range
+      nitrogen: randomBetween(10, 120),     // kg/ha or ppm, depending on context
+      phosphorus: randomBetween(5, 60),     // same unit consistency
+      potassium: randomBetween(50, 200),
+      moisture: randomBetween(30, 90),      // percentage
+      temperature: randomBetween(10, 40),   // °C
+      ec: randomBetween(0.5, 3.0)           // dS/m (electrical conductivity)
+    };
+
+    setSoilData(mockData);
     Alert.alert("Success", "Connected to Agni device successfully!");
   };
 
@@ -121,7 +127,7 @@ export default function LiveConnectScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primary }}>
       <ThemedView style={styles.container}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
           <ThemedText style={styles.title}>Live Connect</ThemedText>
           <ThemedText style={styles.subtitle}>
             Connect your Agni device to analyze soil data in real-time
@@ -136,11 +142,7 @@ export default function LiveConnectScreen() {
             >
               <IconSymbol
                 size={64}
-                name={
-                  isConnected
-                    ? "checkmark.circle.fill"
-                    : "antenna.radiowaves.left.and.right"
-                }
+                name="antenna.radiowaves.left.and.right"
                 color={
                   isConnected
                     ? Colors[colorScheme ?? "light"].primary

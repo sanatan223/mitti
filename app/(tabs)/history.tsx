@@ -150,6 +150,7 @@ export default function HistoryScreen() {
                 ))}
               </MapView>
             */}
+            <ThemedText>Sorry, Map is temporarily unavailable.</ThemedText>
             </View>
           </View>
 
