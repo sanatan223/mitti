@@ -5,8 +5,9 @@ import { ThemedView } from '../../components/ThemedView';
 import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { IconSymbol } from '../../components/ui/IconSymbol';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as Speech from 'expo-speech';
+import { useLanguage, Language } from '../context/LanguageContext';
 
 
 
@@ -21,13 +22,13 @@ export default function AIChatScreen() {
 
   const colorScheme = useColorScheme();
   const [inputText, setInputText] = useState('');
-  const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const { currentLanguage, setLanguage, t } = useLanguage(); 
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: "Hello! I'm your Saathi AI Assistant. Ask me anything about soil health and farming in Odia, Hindi, or English.",
+      text: t('Hello! I\'m your Saathi AI Assistant. Ask me anything about soil health and farming in Odia, Hindi, or English.'),
       isUser: false,
       timestamp: new Date(),
     },
@@ -40,9 +41,40 @@ export default function AIChatScreen() {
         You are "Saathi AI", an agricultural expert who helps farmers analyze soil and gives advice.
         You should always remember the previous soil analysis and refer to it if user asks follow-up questions.
         Keep tone friendly, structured, and easy to read aloud.
+        Your response must be entirely in ${currentLanguage}.
       `
     }
   ]);
+
+  useEffect(() => {
+    // 3. Update the system prompt whenever currentLanguage changes
+    setConversationHistory(prevHistory => {
+        const newSystemPrompt = {
+            role: 'system',
+            content: `You are "Saathi AI", an agricultural expert who helps farmers analyze soil and gives advice. Crucially, you MUST respond in the language specified by the user: ${currentLanguage}. Your response must be entirely in ${currentLanguage}. You should always remember the previous soil analysis and refer to it if user asks follow-...`,
+        };
+        // Replace the old system prompt (assuming it's the first element)
+        if (prevHistory.length > 0 && prevHistory[0].role === 'system') {
+            return [newSystemPrompt, ...prevHistory.slice(1)];
+        }
+        return [newSystemPrompt, ...prevHistory];
+    });
+    
+    // 4. Update the welcome message to refresh dynamically (optional but good UX)
+    setMessages(prevMessages => {
+        if (prevMessages.length > 0 && prevMessages[0].id === 1 && !prevMessages[0].isUser) {
+             return [{
+                 id: 1,
+                 text: t("Hello! I'm your Saathi AI Assistant. Ask me anything about soil health and farming in Odia, Hindi, or English."),
+                 isUser: false,
+                 timestamp: new Date(),
+             }, ...prevMessages.slice(1)];
+        }
+        return prevMessages;
+    });
+
+
+  }, [currentLanguage, t]);
 
 
   const soilData = {
@@ -107,7 +139,7 @@ export default function AIChatScreen() {
     2. Nutrient deficiencies
     3. Recommendations to improve quality
     4. Best crops to grow
-    5. Speak like an expert guiding a farmer in ${selectedLanguage}.
+    5. Speak like an expert guiding a farmer in ${currentLanguage}.
 
     ${JSON.stringify(soilData)}
     `;
@@ -143,7 +175,11 @@ export default function AIChatScreen() {
     setIsSpeaking(true);
 
     Speech.speak(text, {
-      language: selectedLanguage === 'Hindi' ? 'hi-IN' : 'en-US',
+      language: currentLanguage === 'Hindi' ?
+       'hi-IN' :
+        currentLanguage === 'Odia'?
+        'or-IN':
+        'en-US',
       pitch: 1.0,
       rate: 0.85,
       onDone: () => setIsSpeaking(false),
@@ -152,172 +188,185 @@ export default function AIChatScreen() {
     });
   };
 
+  const languages: Language[] = ['English', 'Odia', 'Hindi'];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].primary }}>
-      <ThemedView style={styles.container}>
-        {/* HEADER */}
-        <View style={styles.header}>
-          <View
-            style={[
-              styles.assistantBadge,
-              { backgroundColor: Colors[colorScheme ?? 'light'].primary },
-            ]}
-          >
-            <IconSymbol size={24} name="brain.head.profile" color="white" />
-            <ThemedText style={styles.assistantTitle}>Saathi AI Assistant</ThemedText>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.assistantBadge,
-              { backgroundColor: Colors[colorScheme ?? 'light'].primary },
-            ]}
-            onPress={handleGetSuggestion}
-          >
-            <IconSymbol size={24} name="leaf" color="white" />
-            <ThemedText style={styles.assistantTitle}>Analyze Soil</ThemedText>
-          </TouchableOpacity>
-
-          <ThemedText style={styles.assistantSubtitle}>
-            Ask me anything about soil health and farming.
-          </ThemedText>
-
-          {/* LANGUAGE SWITCHER */}
-          <View style={styles.languageSection}>
-            {['English', 'Hindi', 'Odia'].map((lang) => (
-              <TouchableOpacity
-                key={lang}
+        <ThemedView style={styles.container}>
+          {/* 4. Language Selector Section */}
+          <ThemedView style={styles.languageSelector} lightColor="#f0f0f0" darkColor="#1c1c1c">
+          {languages.map((lang) => (
+            <TouchableOpacity
+              key={lang}
+              style={[
+                styles.languageButton,
+                currentLanguage === lang && { 
+                  backgroundColor: Colors[colorScheme ?? 'light'].tint,
+                }
+              ]}
+              onPress={() => setLanguage(lang as Language)}
+            >
+              <ThemedText 
                 style={[
-                  styles.languageButton,
-                  {
-                    backgroundColor:
-                      selectedLanguage === lang
-                        ? Colors[colorScheme ?? 'light'].primary
-                        : Colors[colorScheme ?? 'light'].lightGray,
-                  },
+                  styles.languageText, 
+                  currentLanguage === lang ? { color: Colors.light.background } : { color: Colors[colorScheme ?? 'light'].text } // White text for active button
                 ]}
-                onPress={() => setSelectedLanguage(lang)}
+                lightColor={currentLanguage === lang ? Colors.light.background : Colors.dark.text}
+                darkColor={currentLanguage === lang ? Colors.dark.background : Colors.light.text}
               >
-                <ThemedText
-                  style={[
-                    styles.languageText,
-                    selectedLanguage === lang && { color: 'white' },
-                  ]}
-                >
-                  {lang === 'English'
-                    ? 'English'
-                    : lang === 'Hindi'
-                    ? 'हिंदी (Hindi)'
-                    : 'ଓଡ଼ିଆ (Odia)'}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* CHAT */}
-        <KeyboardAvoidingView
-          style={styles.chatContainer}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <ScrollView style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
-            {messages.map((message) => (
-              <View
-                key={message.id}
-                style={[
-                  styles.messageWrapper,
-                  message.isUser ? styles.userMessageWrapper : styles.aiMessageWrapper,
-                ]}
-              >
-                {!message.isUser && (
-                  <View
-                    style={[
-                      styles.avatarContainer,
-                      { backgroundColor: Colors[colorScheme ?? 'light'].primary },
-                    ]}
-                  >
-                    <IconSymbol size={16} name="brain.head.profile" color="white" />
-                  </View>
-                )}
-                <View
-                  style={[
-                    styles.messageBubble,
-                    message.isUser
-                      ? { backgroundColor: Colors[colorScheme ?? 'light'].primary }
-                      : { backgroundColor: Colors[colorScheme ?? 'light'].lightGray },
-                  ]}
-                >
-                  {message.text === 'Thinking...' ? (
-                    <ActivityIndicator size="small" color={Colors[colorScheme ?? 'light'].primary} />
-                  ) : (
-                    <ThemedText
-                      style={[styles.messageText, message.isUser && { color: 'white' }]}
-                    >
-                      {message.text}
-                    </ThemedText>
-                  )}
-
-                  {!message.isUser && (
-                    <TouchableOpacity
-                      style={styles.playButton}
-                      onPress={() => handleSpeakMessage(message.text)}
-                    >
-                      <IconSymbol
-                        size={16}
-                        name="speaker.wave.2"
-                        color={Colors[colorScheme ?? 'light'].primary}
-                      />
-                      <ThemedText style={styles.playText}>
-                        {isSpeaking ? 'Stop' : `Play in ${selectedLanguage}`}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-
-          {/* INPUT */}
-          <View style={styles.inputContainer}>
+                {/* The language name itself ('English', 'Odia', 'Hindi') can often be used directly as the label, but to translate the phrase "Local Language" if needed: */}
+                {/* {t(lang)} */} 
+                {lang}
+              </ThemedText>
+            </TouchableOpacity>
+          ))}
+          </ThemedView>
+          {/* HEADER */}
+          <View style={styles.header}>
             <View
               style={[
-                styles.inputWrapper,
-                { backgroundColor: Colors[colorScheme ?? 'light'].lightGray },
+                styles.assistantBadge,
+                { backgroundColor: Colors[colorScheme ?? 'light'].primary },
               ]}
             >
-              <TouchableOpacity style={styles.micButton}>
-                <IconSymbol
-                  size={20}
-                  name="mic.fill"
-                  color={Colors[colorScheme ?? 'light'].primary}
-                />
-              </TouchableOpacity>
-              <TextInput
-                style={[styles.textInput, { color: Colors[colorScheme ?? 'light'].text }]}
-                placeholder="Type your farming question here..."
-                value={inputText}
-                onChangeText={setInputText}
-                multiline
-              />
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  { backgroundColor: Colors[colorScheme ?? 'light'].primary },
-                ]}
-                onPress={handleSendMessage}
-              >
-                <IconSymbol size={20} name="paperplane.fill" color="white" />
-              </TouchableOpacity>
+              <IconSymbol size={24} name="brain.head.profile" color="white" />
+              <ThemedText style={styles.assistantTitle}>{t('Saathi AI Assistant')}</ThemedText>
             </View>
+
+            <TouchableOpacity
+              style={[
+                styles.assistantBadge,
+                { backgroundColor: Colors[colorScheme ?? 'light'].primary },
+              ]}
+              onPress={handleGetSuggestion}
+            >
+              <IconSymbol size={24} name="leaf" color="white" />
+              <ThemedText style={styles.assistantTitle}>{t('Analyze Soil')}</ThemedText>
+            </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </ThemedView>
+
+          {/* CHAT */}
+          <KeyboardAvoidingView
+            style={styles.chatContainer}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <ScrollView style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
+              {messages.map((message) => (
+                <View
+                  key={message.id}
+                  style={[
+                    styles.messageWrapper,
+                    message.isUser ? styles.userMessageWrapper : styles.aiMessageWrapper,
+                  ]}
+                >
+                  {!message.isUser && (
+                    <View
+                      style={[
+                        styles.avatarContainer,
+                        { backgroundColor: Colors[colorScheme ?? 'light'].primary },
+                      ]}
+                    >
+                      <IconSymbol size={16} name="brain.head.profile" color="white" />
+                    </View>
+                  )}
+                  <View
+                    style={[
+                      styles.messageBubble,
+                      message.isUser
+                        ? { backgroundColor: Colors[colorScheme ?? 'light'].primary }
+                        : { backgroundColor: Colors[colorScheme ?? 'light'].lightGray },
+                    ]}
+                  >
+                    {message.text === 'Thinking...' ? (
+                      <ActivityIndicator size="small" color={Colors[colorScheme ?? 'light'].primary} />
+                    ) : (
+                      <ThemedText
+                        style={[styles.messageText, message.isUser && { color: 'white' }]}
+                      >
+                        {message.text}
+                      </ThemedText>
+                    )}
+
+                    {!message.isUser && (
+                      <TouchableOpacity
+                        style={styles.playButton}
+                        onPress={() => handleSpeakMessage(message.text)}
+                      >
+                        <IconSymbol
+                          size={16}
+                          name="speaker.wave.2"
+                          color={Colors[colorScheme ?? 'light'].primary}
+                        />
+                        <ThemedText style={styles.playText}>
+                          {isSpeaking ? 'Stop' : `Play in ${currentLanguage}`}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            {/* INPUT */}
+            <View style={styles.inputContainer}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  { backgroundColor: Colors[colorScheme ?? 'light'].lightGray },
+                ]}
+              >
+                <TouchableOpacity style={styles.micButton}>
+                  <IconSymbol
+                    size={20}
+                    name="mic.fill"
+                    color={Colors[colorScheme ?? 'light'].primary}
+                  />
+                </TouchableOpacity>
+                <TextInput
+                  style={[styles.textInput, { color: Colors[colorScheme ?? 'light'].text }]}
+                  placeholder={t('Type your question or command...')} 
+                  value={inputText}
+                  onChangeText={setInputText}
+                  multiline
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.sendButton,
+                    { backgroundColor: Colors[colorScheme ?? 'light'].primary },
+                  ]}
+                  onPress={handleSendMessage}
+                >
+                  <IconSymbol size={20} name="paperplane.fill" color="white" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </ThemedView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  languageSelector: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    padding: 8,
+    borderRadius: 12,
+    marginBottom: 20,
+    marginHorizontal: 24,
+  },
+  languageButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  languageText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
   },
@@ -348,17 +397,6 @@ const styles = StyleSheet.create({
   languageSection: {
     flexDirection: 'row',
     gap: 8,
-  },
-  languageButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  languageText: {
-    fontSize: 12,
-    fontWeight: '500',
   },
   chatContainer: {
     flex: 1,

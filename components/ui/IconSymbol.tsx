@@ -29,7 +29,7 @@ const MAPPING = {
   'person.crop.circle.fill': 'account-circle',
   'location.fill': 'location-on',
   'checkmark.circle.fill': 'check-circle',
-  'antenna.radiowaves.left.and.right': 'bluetooth-disabled',
+  'antenna.radiowaves.left.and.right': 'bluetooth',
   'mic.fill': 'mic',
 } as IconMapping;
 

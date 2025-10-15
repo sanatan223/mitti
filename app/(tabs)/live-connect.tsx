@@ -7,6 +7,7 @@ import { useColorScheme } from "../../hooks/useColorScheme";
 import { IconSymbol } from "../../components/ui/IconSymbol";
 import { useState } from "react";
 import { BleManager } from "react-native-ble-plx";
+import { useLanguage, Language } from "../context/LanguageContext";
 
 // Initialize Bluetooth Manager
 const manager = new BleManager();
@@ -35,6 +36,7 @@ export default function LiveConnectScreen() {
   const [devices, setDevices] = useState([]);
   const [connectedDevice, setConnectedDevice] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
+  const { currentLanguage, setLanguage, t } = useLanguage();
 
   requestPermissions();
 
@@ -123,14 +125,44 @@ export default function LiveConnectScreen() {
       setIsConnecting(false);
     }
   };
+  
+  const languages: Language[] = ['English', 'Odia', 'Hindi'];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primary }}>
       <ThemedView style={styles.container}>
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-          <ThemedText style={styles.title}>Live Connect</ThemedText>
+          {/* 4. Language Selector Section */}
+          <ThemedView style={styles.languageSelector} lightColor="#f0f0f0" darkColor="#1c1c1c">
+            {languages.map((lang) => (
+              <TouchableOpacity
+                key={lang}
+                style={[
+                  styles.languageButton,
+                  currentLanguage === lang && { 
+                    backgroundColor: Colors[colorScheme ?? 'light'].tint,
+                  }
+                ]}
+                onPress={() => setLanguage(lang as Language)}
+              >
+                <ThemedText 
+                  style={[
+                    styles.languageText, 
+                    currentLanguage === lang ? { color: Colors.light.background } : { color: Colors[colorScheme ?? 'light'].text } // White text for active button
+                  ]}
+                  lightColor={currentLanguage === lang ? Colors.light.background : Colors.dark.text}
+                  darkColor={currentLanguage === lang ? Colors.dark.background : Colors.light.text}
+                >
+                  {/* The language name itself ('English', 'Odia', 'Hindi') can often be used directly as the label, but to translate the phrase "Local Language" if needed: */}
+                  {/* {t(lang)} */} 
+                  {lang}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </ThemedView>
+          <ThemedText style={styles.title}>{t('Live Connect')}</ThemedText>
           <ThemedText style={styles.subtitle}>
-            Connect your Agni device to analyze soil data in real-time
+            {t('Connect your Agni device to analyze soil data in real-time')}
           </ThemedText>
 
           <View style={styles.connectionSection}>
@@ -153,7 +185,7 @@ export default function LiveConnectScreen() {
               {isScanning && devices.length === 0 && (
                 <View style={styles.centered}>
                   <ActivityIndicator size="large" color="#4CAF50" />
-                  <Text style={styles.scanningText}>Scanning for devices...</Text>
+                  <Text style={styles.scanningText}>{t('Scanning for devices...')}</Text>
                 </View>
               )}
 
@@ -174,9 +206,9 @@ export default function LiveConnectScreen() {
                     {isConnecting && connectedDevice && connectedDevice.id === device.id ? (
                       <ActivityIndicator size="small" color="#4CAF50" />
                     ) : connectedDevice && connectedDevice.id === device.id ? (
-                      <Text style={styles.connectedText}>Connected</Text>
+                      <Text style={styles.connectedText}>{t('Connected')}</Text>
                     ) : (
-                      <Text style={styles.connectText}>Tap to Connect</Text>
+                      <Text style={styles.connectText}>{t('Tap to Connect')}</Text>
                     )}
                   </TouchableOpacity>
                 ))}
@@ -194,7 +226,7 @@ export default function LiveConnectScreen() {
                 disabled={isScanning}
               >
               <Text style={styles.scanButtonText}>
-                {isScanning ? 'Scanning...' : 'Scan for Devices'}
+                {isScanning ? t('Scanning...') : t('Scan for Devices')}
               </Text>
               </TouchableOpacity>
               
@@ -202,14 +234,14 @@ export default function LiveConnectScreen() {
                 style={[styles.scanButton, styles.mockButton]} 
                 onPress={loadMockData}
               >
-              <Text style={styles.scanButtonText}>Load Mock Data</Text>
+              <Text style={styles.scanButtonText}>{t('Load Mock Data')}</Text>
               </TouchableOpacity>
               
               {connectedDevice && (
                 <TouchableOpacity 
                   style={[styles.scanButton, styles.disconnectButton]}
                 >
-                  <Text style={styles.scanButtonText}>Disconnect</Text>
+                  <Text style={styles.scanButtonText}>{t('Disconnect')}</Text>
                   </TouchableOpacity>
                 )}
             </View>
@@ -217,7 +249,7 @@ export default function LiveConnectScreen() {
 
           {soilData && (
             <View style={styles.dataSection}>
-              <ThemedText style={styles.dataTitle}>Soil Analysis Data</ThemedText>
+              <ThemedText style={styles.dataTitle}>{t('Soil Analysis Data')}</ThemedText>
               <View style={styles.dataGrid}>
                 <View
                   style={[
@@ -293,6 +325,26 @@ export default function LiveConnectScreen() {
 }
 
 const styles = StyleSheet.create({
+  languageSelector: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    padding: 8,
+    borderRadius: 12,
+    marginBottom: 20,
+    marginHorizontal: 24,
+  },
+  languageButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  languageText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
     padding: 20,

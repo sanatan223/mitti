@@ -8,9 +8,12 @@ import { useColorScheme } from '../../hooks/useColorScheme';
 import { IconSymbol } from '../../components/ui/IconSymbol';
 import { useState } from 'react';
 import { router } from 'expo-router';
+import { useLanguage, Language } from '../context/LanguageContext'; 
 
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
+  const { currentLanguage, setLanguage, t } = useLanguage(); 
+
   const [stats, setStats] = useState({
     farmsAnalyzed: 127,
     soilTests: 284,
@@ -29,23 +32,23 @@ export default function DashboardScreen() {
   const benefits = [
     {
       icon: 'timer',
-      title: 'Instant Analysis',
-      description: 'Get comprehensive soil health data in seconds with our Agni device.'
+      title: t('Instant Analysis'), 
+      description: t('Get comprehensive soil health data in seconds with our Agni device.')
     },
     {
       icon: 'earth',
-      title: 'Local Language',
-      description: 'Receive recommendations in Odia, Hindi, or English with voice support.'
+      title: t('Local Language'),
+      description: t('Receive recommendations in Odia, Hindi, or English with voice support.')
     },
     {
       icon: 'leaf',
-      title: 'Sustainable Farming',
-      description: 'AI-powered organic fertilizer recommendations for better crop yield.'
+      title: t('Sustainable Farming'),
+      description: t('AI-powered organic fertilizer recommendations for better crop yield.')
     },
     {
       icon: 'map',
-      title: 'Field Mapping',
-      description: 'Visualize your soil data on interactive maps for better field management.'
+      title: t('Expert Support'),
+      description: t('Connect with agricultural experts for personalized advice.')
     }
   ];
 
@@ -53,105 +56,137 @@ export default function DashboardScreen() {
     {
       number: 1,
       icon: 'power-plug-outline',
-      title: 'Scan Soil with Agni',
-      description: 'Insert your Agni device into the soil and press the scan button for instant analysis.'
+      title: t('Connect Device'),
+      description: t('Pair and connect your Agni soil sensor device via Bluetooth.'),
+      color: Colors[colorScheme ?? 'light'].primary,
     },
     {
       number: 2,
       icon: 'antenna',
-      title: 'Connect to Saathi',
-      description: 'Automatically sync your data via Bluetooth to the Saathi AI platform.'
+      title: t('Take Sample'),
+      description: t('Insert the sensor into the soil and press the analysis button on the device.'),
+      color: '#FF9800', // Amber
     },
     {
       number: 3,
       icon: 'brain',
-      title: 'Get AI Recommendations',
-      description: 'Receive personalized fertilizer advice in your local language with voice playback.'
-    }
+      title: t('Get Results'),
+      description: t('Receive instant, personalized soil health and fertilizer recommendations.'),
+      color: '#4CAF50', // Green
+    },
   ];
 
+  const languages: Language[] = ['English', 'Odia', 'Hindi'];
+
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primary }}>
-      <ThemedView style={styles.container}>
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Hero Section */}
-          <View style={styles.heroSection}>
-            <View style={styles.heroContent}>
-              <ThemedText style={styles.heroTitle}>
-                The <ThemedText style={{ color: Colors[colorScheme ?? 'light'].primary, fontSize: 36, fontWeight: 'bold' }}>Organic</ThemedText>
-                {'\n'}Intelligence
-                {'\n'}Platform
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background }}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* 4. Language Selector Section */}
+        <ThemedView style={styles.languageSelector} lightColor="#f0f0f0" darkColor="#1c1c1c">
+          {languages.map((lang) => (
+            <TouchableOpacity
+              key={lang}
+              style={[
+                styles.languageButton,
+                currentLanguage === lang && { 
+                  backgroundColor: Colors[colorScheme ?? 'light'].tint,
+                }
+              ]}
+              onPress={() => setLanguage(lang as Language)}
+            >
+              <ThemedText 
+                style={[
+                  styles.languageText, 
+                  currentLanguage === lang ? { color: Colors.light.background } : { color: Colors[colorScheme ?? 'light'].text } // White text for active button
+                ]}
+                lightColor={currentLanguage === lang ? Colors.light.background : Colors.dark.text}
+                darkColor={currentLanguage === lang ? Colors.dark.background : Colors.light.text}
+              >
+                {/* The language name itself ('English', 'Odia', 'Hindi') can often be used directly as the label, but to translate the phrase "Local Language" if needed: */}
+                {/* {t(lang)} */} 
+                {lang}
               </ThemedText>
-              <ThemedText style={styles.heroSubtitle}>
-                Empower your farming with AI-driven soil analysis. Connect your Agni device, 
-                get instant soil health insights, and receive personalized recommendations in your local language.
-              </ThemedText>
-              
-              <View style={styles.heroButtons}>
-                <TouchableOpacity 
-                  style={[styles.primaryButton, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}
-                  onPress={handleConnectDevice}
-                >
-                  <IconSymbol size={20} name="antenna.radiowaves.left.and.right" color="white" />
-                  <ThemedText style={styles.primaryButtonText}>Connect Your Device</ThemedText>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[styles.secondaryButton, { borderColor: Colors[colorScheme ?? 'light'].primary }]}
-                  onPress={handleViewDemo}
-                >
-                  <IconSymbol size={20} name="play.circle" color={Colors[colorScheme ?? 'light'].primary} />
-                  <ThemedText style={[styles.secondaryButtonText, { color: Colors[colorScheme ?? 'light'].primary }]}>
-                    View Demo
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* Live Stats */}
-          <View style={styles.statsSection}>
-            <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-              <ThemedText style={styles.statNumber}>{stats.farmsAnalyzed}</ThemedText>
-              <ThemedText style={styles.statLabel}>Farms Analyzed</ThemedText>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-              <ThemedText style={styles.statNumber}>{stats.soilTests}</ThemedText>
-              <ThemedText style={styles.statLabel}>Soil Tests</ThemedText>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-              <ThemedText style={styles.statNumber}>{stats.aiRecommendations}</ThemedText>
-              <ThemedText style={styles.statLabel}>AI Recommendations</ThemedText>
-            </View>
-          </View>
-
-          {/* Why Choose Saathi AI */}
-          <View style={styles.benefitsSection}>
-            <ThemedText style={styles.sectionTitle}>Why Choose Saathi AI?</ThemedText>
-            <ThemedText style={styles.sectionSubtitle}>
-              Advanced technology meets traditional farming wisdom to maximize your harvest potential.
+            </TouchableOpacity>
+          ))}
+        </ThemedView>
+        
+        {/* Hero Text Section */}
+        <ThemedText style={styles.heroTitle}>
+          {/* Split the translation key for the colored text */}
+          {t('The')} <ThemedText style={{ color: Colors[colorScheme ?? 'light'].primary, fontSize: 36, fontWeight: 'bold' }}>{t('Organic')}</ThemedText>
+          {t('Intelligence')}
+          {t('Platform')}
+        </ThemedText>
+        <ThemedText style={styles.heroSubtitle}>
+          {t(`Empower your farming with AI-driven soil analysis. Connect your Agni device, get instant soil health insights, and receive personalized recommendations in your local language.`)}
+        </ThemedText>
+        
+        {/* Buttons Section */}
+        <View style={styles.heroButtons}>
+          <TouchableOpacity 
+            style={[styles.primaryButton, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}
+            onPress={handleConnectDevice}
+          >
+            <IconSymbol name="link" size={20} color="white" />
+            <ThemedText style={styles.primaryButtonText} lightColor="white" darkColor="white">{t('Connect Your Device')}</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.secondaryButton, { borderColor: Colors[colorScheme ?? 'light'].primary }]}
+            onPress={handleViewDemo}
+          >
+            <IconSymbol size={20} name="play.circle" color={Colors[colorScheme ?? 'light'].primary} />
+            <ThemedText style={[styles.secondaryButtonText, { color: Colors[colorScheme ?? 'light'].primary }]}>
+              {t('View Demo')}
             </ThemedText>
-            
-            <View style={styles.benefitsGrid}>
-              {benefits.map((benefit, index) => (
-                <View key={index} style={[styles.benefitCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-                  <View style={[styles.benefitIcon, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
-                    <MaterialCommunityIcons name={benefit.icon as any} size={24} color="white" />
-                  </View>
-                  <ThemedText style={styles.benefitTitle}>{benefit.title}</ThemedText>
-                  <ThemedText style={styles.benefitDescription}>{benefit.description}</ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        {/* Live Stats */}
+        <View style={styles.statsSection}>
+          <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+            <ThemedText style={styles.statNumber}>{stats.farmsAnalyzed}</ThemedText>
+            <ThemedText style={styles.statLabel}>{t('Farms Analyzed')}</ThemedText>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+            <ThemedText style={styles.statNumber}>{stats.soilTests}</ThemedText>
+            <ThemedText style={styles.statLabel}>{t('Soil Tests')}</ThemedText>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+            <ThemedText style={styles.statNumber}>{stats.aiRecommendations}</ThemedText>
+            <ThemedText style={styles.statLabel}>{t('AI Recommendations')}</ThemedText>
+          </View>
+        </View>
+
+        {/* Why Choose Saathi AI */}
+        <View style={styles.benefitsSection}>
+          <ThemedText style={styles.sectionTitle}>{t('Why Choose Saathi AI?')}</ThemedText>
+          <ThemedText style={styles.sectionSubtitle}>
+            {t('Advanced technology meets traditional farming wisdom to maximize your harvest potential.')}
+          </ThemedText>
+          
+          <View style={styles.benefitsGrid}>
+            {/* NOTE: benefits.map already uses t(benefit.title) and t(benefit.description) because the data is defined in the component, but we keep the structure here. */}
+            {benefits.map((benefit, index) => (
+              <View key={index} style={[styles.benefitCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+                <View style={[styles.benefitIcon, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
+                  <MaterialCommunityIcons name={benefit.icon as any} size={24} color="white" />
                 </View>
-              ))}
-            </View>
+                <ThemedText style={styles.benefitTitle}>{t(benefit.title)}</ThemedText>
+                <ThemedText style={styles.benefitDescription}>{t(benefit.description)}</ThemedText>
+              </View>
+            ))}
           </View>
+        </View>
 
-          {/* How It Works */}
-          <View style={styles.stepsSection}>
-            <ThemedText style={styles.sectionTitle}>How It Works</ThemedText>
-            <ThemedText style={styles.sectionSubtitle}>
-              Simple 3-step process to transform your farming approach
-            </ThemedText>
-            
+        {/* How It Works */}
+        <View style={styles.stepsSection}>
+          <ThemedText style={styles.sectionTitle}>{t('How It Works')}</ThemedText>
+          <ThemedText style={styles.sectionSubtitle}>
+            {t('Simple 3-step process to transform your farming approach')}
+          </ThemedText>
+          
+          <View>
             {steps.map((step, index) => (
               <View key={index} style={[styles.stepCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
                 <View style={[styles.stepNumber, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
@@ -161,14 +196,14 @@ export default function DashboardScreen() {
                   <MaterialCommunityIcons name={step.icon as any} size={32} color="white" />
                 </View>
                 <View style={styles.stepContent}>
-                  <ThemedText style={styles.stepTitle}>{step.title}</ThemedText>
-                  <ThemedText style={styles.stepDescription}>{step.description}</ThemedText>
+                  <ThemedText style={styles.stepTitle}>{t(step.title)}</ThemedText>
+                  <ThemedText style={styles.stepDescription}>{t(step.description)}</ThemedText>
                 </View>
               </View>
             ))}
           </View>
-        </ScrollView>
-      </ThemedView>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -357,5 +392,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
     lineHeight: 20,
+  },
+  languageSelector: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    padding: 8,
+    borderRadius: 12,
+    marginBottom: 20,
+    marginHorizontal: 24,
+  },
+  languageButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  languageText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  scrollContainer: {
+    paddingBottom: 40,
   },
 });
