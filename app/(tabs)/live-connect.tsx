@@ -8,6 +8,8 @@ import { IconSymbol } from "../../components/ui/IconSymbol";
 import { useState } from "react";
 import { BleManager } from "react-native-ble-plx";
 import { useLanguage, Language } from "../context/LanguageContext";
+import { SoilData, saveTestRecord, SoilTestRecord } from "../../database/datastorage";
+import { useSoilTest, SoilTestProvider } from '../context/SoilTestContext';
 
 // Initialize Bluetooth Manager
 const manager = new BleManager();
@@ -37,6 +39,13 @@ export default function LiveConnectScreen() {
   const [connectedDevice, setConnectedDevice] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const { currentLanguage, setLanguage, t } = useLanguage();
+  const [currentTestId, setCurrentTestId] = useState<string | null>(null); // 👈 New state for current test ID
+  const [currentLocation, setCurrentLocation] = useState('My Field');
+  const { 
+    setLatestRecordId, 
+    setLatestSoilData, 
+    setTriggerHistoryRefresh 
+  } = useSoilTest(); // 👈 Use the context
 
   requestPermissions();
 
@@ -69,7 +78,7 @@ export default function LiveConnectScreen() {
     return true;
   };
 
-  const loadMockData = () => {
+  const loadMockData = async() => {
     setIsConnected(true);
     setIsConnecting(false);
     setIsScanning(false);
@@ -77,29 +86,40 @@ export default function LiveConnectScreen() {
       return +(Math.random() * (max - min) + min).toFixed(2);
     }
 
-    const mockData = {
-      pH: randomBetween(5.5, 8.0),          // typical soil pH range
-      nitrogen: randomBetween(10, 120),     // kg/ha or ppm, depending on context
-      phosphorus: randomBetween(5, 60),     // same unit consistency
+    const mockData: SoilData = { // 👈 Use the imported SoilData type
+      pH: randomBetween(5.5, 8.0),          
+      nitrogen: randomBetween(10, 120),     
+      phosphorus: randomBetween(5, 60),     
       potassium: randomBetween(50, 200),
-      moisture: randomBetween(30, 90),      // percentage
-      temperature: randomBetween(10, 40),   // °C
-      ec: randomBetween(0.5, 3.0)           // dS/m (electrical conductivity)
+      moisture: randomBetween(30, 90),      
+      temperature: randomBetween(10, 40),   
+      ec: randomBetween(0.5, 3.0)           
     };
 
     setSoilData(mockData);
     Alert.alert("Success", "Connected to Agni device successfully!");
-  };
+    // 2. Persist the new data
+    const newRecord: Omit<SoilTestRecord, 'id' | 'date' | 'time' > = {
+        soilData: mockData,
+        chatHistory: [], // Start with empty chat history
+        pHStatus: 'Neutral', // Will be calculated in saveTestRecord, but required for type safety
+        pHColor: '',
+        latitude: 0,
+        longitude: 0,
+        location: '',
+    };
+    
+    const savedRecord = await saveTestRecord(newRecord, currentLocation);
 
-  const handleBluetoothScan = async () => {
-    setIsScanning(true);
-    try {
-      // Simulate Bluetooth scanning and connection
-      scanForDevices() || loadMockData();
-
-    } catch (error) {
-      setIsScanning(false);
-      Alert.alert("Error", "Failed to connect to Agni device");
+     if (savedRecord) {
+        setCurrentTestId(savedRecord.id);
+        setLatestRecordId(savedRecord.id);
+        setLatestSoilData(savedRecord.soilData);
+        setTriggerHistoryRefresh(Date.now());
+        // ---------------------------------------------
+        Alert.alert("Success", `Connected to Agni device and saved test data (ID: ${savedRecord.id})!`);
+    } else {
+        Alert.alert("Error", "Data saved to device, but failed to save to local storage.");
     }
   };
 
@@ -130,196 +150,198 @@ export default function LiveConnectScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primary }}>
-      <ThemedView style={styles.container}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-          {/* 4. Language Selector Section */}
-          <ThemedView style={styles.languageSelector} lightColor="#f0f0f0" darkColor="#1c1c1c">
-            {languages.map((lang) => (
-              <TouchableOpacity
-                key={lang}
-                style={[
-                  styles.languageButton,
-                  currentLanguage === lang && { 
-                    backgroundColor: Colors[colorScheme ?? 'light'].tint,
-                  }
-                ]}
-                onPress={() => setLanguage(lang as Language)}
-              >
-                <ThemedText 
+      <SoilTestProvider>
+        <ThemedView style={styles.container}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+            {/* 4. Language Selector Section */}
+            <ThemedView style={styles.languageSelector} lightColor="#f0f0f0" darkColor="#1c1c1c">
+              {languages.map((lang) => (
+                <TouchableOpacity
+                  key={lang}
                   style={[
-                    styles.languageText, 
-                    currentLanguage === lang ? { color: Colors.light.background } : { color: Colors[colorScheme ?? 'light'].text } // White text for active button
+                    styles.languageButton,
+                    currentLanguage === lang && { 
+                      backgroundColor: Colors[colorScheme ?? 'light'].tint,
+                    }
                   ]}
-                  lightColor={currentLanguage === lang ? Colors.light.background : Colors.dark.text}
-                  darkColor={currentLanguage === lang ? Colors.dark.background : Colors.light.text}
+                  onPress={() => setLanguage(lang as Language)}
                 >
-                  {/* The language name itself ('English', 'Odia', 'Hindi') can often be used directly as the label, but to translate the phrase "Local Language" if needed: */}
-                  {/* {t(lang)} */} 
-                  {lang}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
-          </ThemedView>
-          <ThemedText style={styles.title}>{t('Live Connect')}</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            {t('Connect your Agni device to analyze soil data in real-time')}
-          </ThemedText>
-
-          <View style={styles.connectionSection}>
-            <View
-              style={[
-                styles.connectionCard,
-                { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
-              ]}
-            >
-              <IconSymbol
-                size={64}
-                name="antenna.radiowaves.left.and.right"
-                color={
-                  isConnected
-                    ? Colors[colorScheme ?? "light"].primary
-                    : Colors[colorScheme ?? "light"].secondary
-                }
-              />
-              <Text style={styles.sectionTitle}>Available Devices:</Text>
-              {isScanning && devices.length === 0 && (
-                <View style={styles.centered}>
-                  <ActivityIndicator size="large" color="#4CAF50" />
-                  <Text style={styles.scanningText}>{t('Scanning for devices...')}</Text>
-                </View>
-              )}
-
-              <ScrollView style={styles.devicesList}>
-                {devices.map(device => (
-                  <TouchableOpacity
-                    key={device.id}
+                  <ThemedText 
                     style={[
-                      styles.deviceItem, 
-                      connectedDevice && connectedDevice.id === device.id && styles.connectedDevice
+                      styles.languageText, 
+                      currentLanguage === lang ? { color: Colors.light.background } : { color: Colors[colorScheme ?? 'light'].text } // White text for active button
                     ]}
-                    onPress={() => connectToDevice(device)}
-                    disabled={connectedDevice !== null && connectedDevice.id !== device.id}
+                    lightColor={currentLanguage === lang ? Colors.light.background : Colors.dark.text}
+                    darkColor={currentLanguage === lang ? Colors.dark.background : Colors.light.text}
                   >
-                    <View style={styles.deviceInfo}>
-                      <Text style={styles.deviceName}>{device.name || 'Unknown Device'}</Text>
-                    </View>
-                    {isConnecting && connectedDevice && connectedDevice.id === device.id ? (
-                      <ActivityIndicator size="small" color="#4CAF50" />
-                    ) : connectedDevice && connectedDevice.id === device.id ? (
-                      <Text style={styles.connectedText}>{t('Connected')}</Text>
-                    ) : (
-                      <Text style={styles.connectText}>{t('Tap to Connect')}</Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+                    {/* The language name itself ('English', 'Odia', 'Hindi') can often be used directly as the label, but to translate the phrase "Local Language" if needed: */}
+                    {/* {t(lang)} */} 
+                    {lang}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </ThemedView>
+            <ThemedText style={styles.title}>{t('Live Connect')}</ThemedText>
+            <ThemedText style={styles.subtitle}>
+              {t('Connect your Agni device to analyze soil data in real-time')}
+            </ThemedText>
 
-
-            <View style={styles.controls}>
-              <TouchableOpacity 
+            <View style={styles.connectionSection}>
+              <View
                 style={[
-                styles.scanButton,
-                { backgroundColor: Colors[colorScheme ?? "light"].primary },
-              ]} 
-                onPress={scanForDevices}
-                disabled={isScanning}
+                  styles.connectionCard,
+                  { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
+                ]}
               >
-              <Text style={styles.scanButtonText}>
-                {isScanning ? t('Scanning...') : t('Scan for Devices')}
-              </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.scanButton, styles.mockButton]} 
-                onPress={loadMockData}
-              >
-              <Text style={styles.scanButtonText}>{t('Load Mock Data')}</Text>
-              </TouchableOpacity>
-              
-              {connectedDevice && (
-                <TouchableOpacity 
-                  style={[styles.scanButton, styles.disconnectButton]}
-                >
-                  <Text style={styles.scanButtonText}>{t('Disconnect')}</Text>
-                  </TouchableOpacity>
+                <IconSymbol
+                  size={64}
+                  name="antenna.radiowaves.left.and.right"
+                  color={
+                    isConnected
+                      ? Colors[colorScheme ?? "light"].primary
+                      : Colors[colorScheme ?? "light"].secondary
+                  }
+                />
+                <Text style={styles.sectionTitle}>Available Devices:</Text>
+                {isScanning && devices.length === 0 && (
+                  <View style={styles.centered}>
+                    <ActivityIndicator size="large" color="#4CAF50" />
+                    <Text style={styles.scanningText}>{t('Scanning for devices...')}</Text>
+                  </View>
                 )}
-            </View>
-          </View>
 
-          {soilData && (
-            <View style={styles.dataSection}>
-              <ThemedText style={styles.dataTitle}>{t('Soil Analysis Data')}</ThemedText>
-              <View style={styles.dataGrid}>
-                <View
+                <ScrollView style={styles.devicesList}>
+                  {devices.map(device => (
+                    <TouchableOpacity
+                      key={device.id}
+                      style={[
+                        styles.deviceItem, 
+                        connectedDevice && connectedDevice.id === device.id && styles.connectedDevice
+                      ]}
+                      onPress={() => connectToDevice(device)}
+                      disabled={connectedDevice !== null && connectedDevice.id !== device.id}
+                    >
+                      <View style={styles.deviceInfo}>
+                        <Text style={styles.deviceName}>{device.name || 'Unknown Device'}</Text>
+                      </View>
+                      {isConnecting && connectedDevice && connectedDevice.id === device.id ? (
+                        <ActivityIndicator size="small" color="#4CAF50" />
+                      ) : connectedDevice && connectedDevice.id === device.id ? (
+                        <Text style={styles.connectedText}>{t('Connected')}</Text>
+                      ) : (
+                        <Text style={styles.connectText}>{t('Tap to Connect')}</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+
+              <View style={styles.controls}>
+                <TouchableOpacity 
                   style={[
-                    styles.dataCard,
-                    { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
-                  ]}
+                  styles.scanButton,
+                  { backgroundColor: Colors[colorScheme ?? "light"].primary },
+                ]} 
+                  onPress={scanForDevices}
+                  disabled={isScanning}
                 >
-                  <ThemedText style={styles.dataLabel}>pH Level</ThemedText>
-                  <ThemedText style={styles.dataValue}>{soilData.pH}</ThemedText>
-                </View>
-                <View
-                  style={[
-                    styles.dataCard,
-                    { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
-                  ]}
+                <Text style={styles.scanButtonText}>
+                  {isScanning ? t('Scanning...') : t('Scan for Devices')}
+                </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.scanButton, styles.mockButton]} 
+                  onPress={loadMockData}
                 >
-                  <ThemedText style={styles.dataLabel}>Nitrogen</ThemedText>
-                  <ThemedText style={styles.dataValue}>
-                    {soilData.nitrogen} ppm
-                  </ThemedText>
-                </View>
-                <View
-                  style={[
-                    styles.dataCard,
-                    { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
-                  ]}
-                >
-                  <ThemedText style={styles.dataLabel}>Phosphorus</ThemedText>
-                  <ThemedText style={styles.dataValue}>
-                    {soilData.phosphorus} ppm
-                  </ThemedText>
-                </View>
-                <View
-                  style={[
-                    styles.dataCard,
-                    { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
-                  ]}
-                >
-                  <ThemedText style={styles.dataLabel}>Potassium</ThemedText>
-                  <ThemedText style={styles.dataValue}>
-                    {soilData.potassium} ppm
-                  </ThemedText>
-                </View>
-                <View
-                  style={[
-                    styles.dataCard,
-                    { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
-                  ]}
-                >
-                  <ThemedText style={styles.dataLabel}>Moisture</ThemedText>
-                  <ThemedText style={styles.dataValue}>
-                    {soilData.moisture}%
-                  </ThemedText>
-                </View>
-                <View
-                  style={[
-                    styles.dataCard,
-                    { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
-                  ]}
-                >
-                  <ThemedText style={styles.dataLabel}>Temperature</ThemedText>
-                  <ThemedText style={styles.dataValue}>
-                    {soilData.temperature}°C
-                  </ThemedText>
-                </View>
+                <Text style={styles.scanButtonText}>{t('Load Mock Data')}</Text>
+                </TouchableOpacity>
+                
+                {connectedDevice && (
+                  <TouchableOpacity 
+                    style={[styles.scanButton, styles.disconnectButton]}
+                  >
+                    <Text style={styles.scanButtonText}>{t('Disconnect')}</Text>
+                    </TouchableOpacity>
+                  )}
               </View>
             </View>
-          )}
-        </ScrollView>
-      </ThemedView>
+
+            {soilData && (
+              <View style={styles.dataSection}>
+                <ThemedText style={styles.dataTitle}>{t('Soil Analysis Data')}</ThemedText>
+                <View style={styles.dataGrid}>
+                  <View
+                    style={[
+                      styles.dataCard,
+                      { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
+                    ]}
+                  >
+                    <ThemedText style={styles.dataLabel}>pH Level</ThemedText>
+                    <ThemedText style={styles.dataValue}>{soilData.pH}</ThemedText>
+                  </View>
+                  <View
+                    style={[
+                      styles.dataCard,
+                      { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
+                    ]}
+                  >
+                    <ThemedText style={styles.dataLabel}>Nitrogen</ThemedText>
+                    <ThemedText style={styles.dataValue}>
+                      {soilData.nitrogen} ppm
+                    </ThemedText>
+                  </View>
+                  <View
+                    style={[
+                      styles.dataCard,
+                      { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
+                    ]}
+                  >
+                    <ThemedText style={styles.dataLabel}>Phosphorus</ThemedText>
+                    <ThemedText style={styles.dataValue}>
+                      {soilData.phosphorus} ppm
+                    </ThemedText>
+                  </View>
+                  <View
+                    style={[
+                      styles.dataCard,
+                      { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
+                    ]}
+                  >
+                    <ThemedText style={styles.dataLabel}>Potassium</ThemedText>
+                    <ThemedText style={styles.dataValue}>
+                      {soilData.potassium} ppm
+                    </ThemedText>
+                  </View>
+                  <View
+                    style={[
+                      styles.dataCard,
+                      { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
+                    ]}
+                  >
+                    <ThemedText style={styles.dataLabel}>Moisture</ThemedText>
+                    <ThemedText style={styles.dataValue}>
+                      {soilData.moisture}%
+                    </ThemedText>
+                  </View>
+                  <View
+                    style={[
+                      styles.dataCard,
+                      { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
+                    ]}
+                  >
+                    <ThemedText style={styles.dataLabel}>Temperature</ThemedText>
+                    <ThemedText style={styles.dataValue}>
+                      {soilData.temperature}°C
+                    </ThemedText>
+                  </View>
+                </View>
+              </View>
+            )}
+          </ScrollView>
+        </ThemedView>
+      </SoilTestProvider>
     </SafeAreaView>
   );
 }

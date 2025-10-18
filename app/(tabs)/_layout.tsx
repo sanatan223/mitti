@@ -11,6 +11,7 @@ import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 // 1. Import the provider and hook
 import { LanguageProvider, useLanguage } from '../context/LanguageContext'; 
+import { SoilTestProvider } from '../context/SoilTestContext';
 
 // New component to handle the translation of tab titles
 function TranslatedTabLayout() {
@@ -85,8 +86,10 @@ export default function TabLayout() {
     // 4. Wrap the TranslatedTabLayout with the LanguageProvider
     // Create the context folder and LanguageContext.tsx first!
     return (
+      <SoilTestProvider>
         <LanguageProvider>
             <TranslatedTabLayout />
         </LanguageProvider>
+      </SoilTestProvider>
     )
 }

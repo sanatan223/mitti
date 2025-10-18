@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
@@ -6,184 +6,215 @@ import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { IconSymbol } from '../../components/ui/IconSymbol';
 //import MapView, { Marker, Region } from 'react-native-maps';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import { getTestRecords, SoilTestRecord } from '../../database/datastorage';
+import { useSoilTest, SoilTestProvider } from '../context/SoilTestContext';
+import { useLanguage, Language } from "../context/LanguageContext";
 
 export default function HistoryScreen() {
   const colorScheme = useColorScheme();
-  //const mapRef = useRef<MapView>(null);
+  const navigation = useNavigation();
+  const [historyRecords, setHistoryRecords] = useState<SoilTestRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
+  const { triggerHistoryRefresh } = useSoilTest();
+  const { currentLanguage, setLanguage, t } = useLanguage();
 
-  const testHistory = [
-    {
-      id: 1,
-      date: '2025-09-19',
-      time: '14:30',
-      location: 'Field A - Block 1',
-      pH: 6.8,
-      status: 'Neutral',
-      color: Colors[colorScheme ?? 'light'].primary,
-      latitude: 20.2961,
-      longitude: 85.8245
-    },
-    {
-      id: 2,
-      date: '2025-09-18',
-      time: '09:15',
-      location: 'Field B - Block 2',
-      pH: 5.2,
-      status: 'Acidic',
-      color: '#f44336',
-      latitude: 20.2980,
-      longitude: 85.8260
-    },
-    {
-      id: 3,
-      date: '2025-09-17',
-      time: '16:45',
-      location: 'Field C - Block 1',
-      pH: 7.8,
-      status: 'Alkaline',
-      color: '#2196f3',
-      latitude: 20.2950,
-      longitude: 85.8230
-    }
-  ];
+  const fetchHistory = async () => {
+    setIsLoading(true);
+    const records = await getTestRecords();
+    setHistoryRecords(records);
+    setIsLoading(false);
+  };
 
+  useEffect(() => {
+    fetchHistory();
+    // Use an event listener here to re-fetch when the screen comes into focus
+    navigation.addListener('focus', fetchHistory);
+    return navigation.removeListener('focus', fetchHistory); 
+  }, []);
+
+  useEffect(() => {
+      fetchHistory();
+  }, [triggerHistoryRefresh]);
+
+  // Use the fetched data for statistics
+  const totalTests = historyRecords.length;
+  const avgPH = totalTests > 0 
+    ? (historyRecords.reduce((sum, rec) => sum + rec.soilData.pH, 0) / totalTests).toFixed(1)
+    : 'N/A';
+  
+  // Mock improvement stat (needs actual historical data logic for a real calculation)
   const stats = {
-    totalTests: 15,
-    avgPH: 6.5,
-    improvement: '+0.3'
+    totalTests: totalTests,
+    avgPH: avgPH,
+    improvement: '+0.3' // Static for now
   };
 
-  // Set the initial region for the map. We'll center it on the first item in the history.
-  {/*}
-  const initialRegion: Region = testHistory.length > 0 ? {
-    latitude: testHistory[0].latitude,
-    longitude: testHistory[0].longitude,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
-  } : {
-    latitude: 0,
-    longitude: 0,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
+  // Function to navigate to AI Chat with the record ID
+  const navigateToChat = (recordId: string) => {
+    // In a real app:
+    navigation.navigate('ai-chat', { recordId });
+    console.log(`Navigating to AIChatScreen with recordId: ${recordId}`);
+    alert(`Redirect to Chat for Test ID: ${recordId} (Check console for mock navigation)`);
   };
-  */}
-  // Function to center the map on a specific marker
-  const onLocationPress = (id: number, latitude: number, longitude: number) => {
-    setSelectedLocation(id);
-    {/*}
-    mapRef.current?.animateToRegion(
-      {
-        latitude,
-        longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      },
-      1000 // Animation duration in milliseconds
-    );
-    */}
+
+  // Function to center the map on a specific marker (retained for structure)
+  const onLocationPress = (id: string, latitude: number, longitude: number) => {
+    // ... (Map logic remains the same)
   };
+
+  const languages: Language[] = ['English', 'Odia', 'Hindi'];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primary }}>
-      <ThemedView style={styles.container}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-
-          <ThemedText style={styles.title}>History & Analytics</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Track your soil health trends and field performance over time
-          </ThemedText>
-
-          {/* Filter Controls */}
-          <View style={styles.filterSection}>
-            <TouchableOpacity style={[styles.filterButton, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-              <IconSymbol size={16} name="calendar" color={Colors[colorScheme ?? 'light'].text} />
-              <ThemedText style={styles.filterText}>Last 30 Days</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.filterButton, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-              <IconSymbol size={16} name="slider.horizontal.3" color={Colors[colorScheme ?? 'light'].text} />
-              <ThemedText style={styles.filterText}>pH Level</ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.exportButton, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
-              <IconSymbol size={16} name="square.and.arrow.up" color="white" />
-              <ThemedText style={styles.exportText}>Export</ThemedText>
-            </TouchableOpacity>
-          </View>
-
-          {/* Statistics Cards */}
-          <View style={styles.statsSection}>
-            <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-              <ThemedText style={styles.statValue}>{stats.totalTests}</ThemedText>
-              <ThemedText style={styles.statLabel}>Total Tests</ThemedText>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-              <ThemedText style={styles.statValue}>{stats.avgPH}</ThemedText>
-              <ThemedText style={styles.statLabel}>Avg pH</ThemedText>
-            </View>
-            <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-              <ThemedText style={[styles.statValue, { color: Colors[colorScheme ?? 'light'].primary }]}>
-                {stats.improvement}
-              </ThemedText>
-              <ThemedText style={styles.statLabel}>Improvement</ThemedText>
-            </View>
-          </View>
-
-          {/* Interactive Map */}
-          <View style={styles.mapSection}>
-            <ThemedText style={styles.mapTitle}>Field Test Locations</ThemedText>
-            <View style={styles.mapContainer}>
-              {/*
-              <MapView
-                ref={mapRef}
-                style={styles.map}
-                initialRegion={initialRegion}
-              >
-                {testHistory.map((test) => (
-                  <Marker
-                    key={test.id}
-                    coordinate={{ latitude: test.latitude, longitude: test.longitude }}
-                    title={test.location}
-                    description={`pH: ${test.pH} - ${test.status}`}
-                    pinColor={test.color} // Use a prop for the pin color
-                  />
-                ))}
-              </MapView>
-            */}
-            <ThemedText>Sorry, Map is temporarily unavailable.</ThemedText>
-            </View>
-          </View>
-
-          {/* Test History Log */}
-          <View style={styles.historySection}>
-            <ThemedText style={styles.historyTitle}>Test History Log</ThemedText>
-            <View style={styles.historyList}>
-              {testHistory.map((test) => (
+      <SoilTestProvider>
+        <ThemedView style={styles.container}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+            {/* 4. Language Selector Section */}
+            <ThemedView style={styles.languageSelector} lightColor="#f0f0f0" darkColor="#1c1c1c">
+              {languages.map((lang) => (
                 <TouchableOpacity
-                  key={test.id}
-                  style={[styles.historyItem, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}
-                  //onPress={() => onLocationPress(test.id, test.latitude, test.longitude)}
+                  key={lang}
+                  style={[
+                    styles.languageButton,
+                    currentLanguage === lang && { 
+                      backgroundColor: Colors[colorScheme ?? 'light'].tint,
+                    }
+                  ]}
+                  onPress={() => setLanguage(lang as Language)}
                 >
-                  <View style={[styles.statusIndicator, { backgroundColor: test.color }]} />
-                  <View style={styles.historyContent}>
-                    <ThemedText style={styles.historyLocation}>{test.location}</ThemedText>
-                    <ThemedText style={styles.historyDetails}>
-                      pH: {test.pH} - {test.status} | {test.date} at {test.time}
-                    </ThemedText>
-                  </View>
-                  <IconSymbol size={20} name="chevron.right" color={Colors[colorScheme ?? 'light'].icon} />
+                  <ThemedText 
+                    style={[
+                      styles.languageText, 
+                      currentLanguage === lang ? { color: Colors.light.background } : { color: Colors[colorScheme ?? 'light'].text } // White text for active button
+                    ]}
+                    lightColor={currentLanguage === lang ? Colors.light.background : Colors.dark.text}
+                    darkColor={currentLanguage === lang ? Colors.dark.background : Colors.light.text}
+                  >
+                    {/* The language name itself ('English', 'Odia', 'Hindi') can often be used directly as the label, but to translate the phrase "Local Language" if needed: */}
+                    {/* {t(lang)} */} 
+                    {lang}
+                  </ThemedText>
                 </TouchableOpacity>
               ))}
-            </View>
-          </View>
+            </ThemedView>
+            <ThemedText style={styles.title}>{t('History & Analytics')}</ThemedText>
+            <ThemedText style={styles.subtitle}>
+              {t('Track your soil health trends and field performance over time')}
+            </ThemedText>
 
-        </ScrollView>
-      </ThemedView>
+            {/* Filter Controls */}
+            <View style={styles.filterSection}>
+              <TouchableOpacity style={[styles.filterButton, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+                <IconSymbol size={16} name="calendar" color={Colors[colorScheme ?? 'light'].text} />
+                <ThemedText style={styles.filterText}>{t('Last 30 Days')}</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.filterButton, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+                <IconSymbol size={16} name="slider.horizontal.3" color={Colors[colorScheme ?? 'light'].text} />
+                <ThemedText style={styles.filterText}>{t('pH Level')}</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.exportButton, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
+                <IconSymbol size={16} name="square.and.arrow.up" color="white" />
+                <ThemedText style={styles.exportText}>{t('Export')}</ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            {/* Statistics Cards */}
+            <View style={styles.statsSection}>
+              <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+                <ThemedText style={styles.statValue}>{stats.totalTests}</ThemedText>
+                <ThemedText style={styles.statLabel}>{t('Total Tests')}</ThemedText>
+              </View>
+              <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+                <ThemedText style={styles.statValue}>{stats.avgPH}</ThemedText>
+                <ThemedText style={styles.statLabel}>{t('Avg pH')}</ThemedText>
+              </View>
+              <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+                <ThemedText style={[styles.statValue, { color: Colors[colorScheme ?? 'light'].primary }]}>
+                  {stats.improvement}
+                </ThemedText>
+                <ThemedText style={styles.statLabel}>{t('Improvement')}</ThemedText>
+              </View>
+            </View>
+
+            {/* Interactive Map */}
+            <View style={styles.mapSection}>
+              <ThemedText style={styles.mapTitle}>{t('Field Test Locations')}</ThemedText>
+              <View style={styles.mapContainer}>
+                {/*
+                <MapView
+                  ref={mapRef}
+                  style={styles.map}
+                  initialRegion={initialRegion}
+                >
+                  {testHistory.map((test) => (
+                    <Marker
+                      key={test.id}
+                      coordinate={{ latitude: test.latitude, longitude: test.longitude }}
+                      title={test.location}
+                      description={`pH: ${test.pH} - ${test.status}`}
+                      pinColor={test.color} // Use a prop for the pin color
+                    />
+                  ))}
+                </MapView>
+              */}
+              <ThemedText>{t('Sorry, Map is temporarily unavailable.')}</ThemedText>
+              </View>
+            </View>
+
+            {/* Test History Log */}
+            <View style={styles.historySection}>
+              <ThemedText style={styles.historyTitle}>{t('Test History Log')}</ThemedText>
+              <View style={styles.historyList}>
+                {historyRecords.map((test) => (
+                  <TouchableOpacity
+                    key={test.id}
+                    style={[styles.historyItem, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}
+                    onPress={() => navigateToChat(test.id)}
+                  >
+                    <View style={[styles.statusIndicator, { backgroundColor: test.pHColor }]} />
+                    <View style={styles.historyContent}>
+                      <ThemedText style={styles.historyLocation}>{test.location}</ThemedText>
+                        <ThemedText style={styles.historyDetails}>
+                          pH: {test.soilData.pH} - {test.pHStatus} | {test.date} at {test.time}
+                        </ThemedText>
+                    </View>
+                    <IconSymbol size={20} name="chevron.right" color={Colors[colorScheme ?? 'light'].icon} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+          </ScrollView>
+        </ThemedView>
+      </SoilTestProvider>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  languageSelector: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    padding: 8,
+    borderRadius: 12,
+    marginBottom: 20,
+    marginHorizontal: 24,
+  },
+  languageButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  languageText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
     padding: 20,
