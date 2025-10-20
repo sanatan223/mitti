@@ -2,16 +2,12 @@
   "expo": {
     "name": "Saathi",
     "slug": "saathi",
-    "scheme": "saathi",
     "version": "1.0.0",
     "extra": {
       "eas": {
         "projectId": "df1dc99a-497f-4a03-99fb-003772f87cc2"
       }
     },
-    "owner": "sanatan_dev",
-    "android": {
-      "package": "com.sanatan_dev.saathi"
-    }
+    "owner": "sanatan_dev"
   }
 }
