@@ -25,7 +25,7 @@ interface AIChatRouteParams {
 }
 
 export default function AIChatScreen() {
-
+  const API_KEY = process.env.EXPO_PUBLIC_API_KEY; // Ensure this is set in your .env file
   const colorScheme = useColorScheme();
   const [inputText, setInputText] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -161,7 +161,8 @@ export default function AIChatScreen() {
   }, [currentLanguage, t]);
 
   // 🔹 Unified AI call (used by both soil analysis & chat)
-  const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = false) => {
+  // Enhanced version with proper role handling
+const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = false) => {
     try {
       const updatedHistory = [...conversationHistory, { role: 'user' as const, content: newUserMessage }];
       setConversationHistory(updatedHistory);
@@ -174,30 +175,58 @@ export default function AIChatScreen() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, loadingMessage]);
+      
+      // Build conversation context
+      const conversationContext = updatedHistory
+        .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+        .join('\n\n');
+      
+      const prompt = isInitialAnalysis ? 
+        newUserMessage : // For initial analysis, use the full prompt
+        `${conversationContext}\n\nAssistant:`;
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${API_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer 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`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: updatedHistory,
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1000,
+          }
         }),
       });
 
       const data = await response.json();
-      const aiText = data?.choices?.[0]?.message?.content ?? 'Sorry, no response.';
+      console.log('Gemini Response:', data);
+      
+      const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Sorry, no response from AI.';
 
-      const aiMessage = { id: tempMessageId, text: aiText, isUser: false, timestamp: new Date() };
+      // Update UI and state...
+      const aiMessage = { 
+        id: tempMessageId, 
+        text: aiText, 
+        isUser: false, 
+        timestamp: new Date() 
+      };
+      
       setMessages((prev) =>
         prev.map((msg) => (msg.id === tempMessageId ? aiMessage : msg))
       );
       
       const finalConversationHistory = [...updatedHistory, { role: 'assistant' as const, content: aiText }];
       setConversationHistory(finalConversationHistory);
-      // 5. NEW: Persist updated chat history to AsyncStorage
+      
       if (currentRecordId) {
           await updateTestRecordChatHistory(currentRecordId, finalConversationHistory);
       } else if (isInitialAnalysis) {
@@ -206,11 +235,11 @@ export default function AIChatScreen() {
 
       handleSpeakMessage(aiText);
     } catch (error) {
-      console.error('AI Error:', error);
-      Alert.alert('Error', 'Failed to get AI response.');
+      console.error('Gemini AI Error:', error);
+      Alert.alert('Error', 'Failed to get AI response from Gemini.');
     }
   };
-
+   
   // 🔹 Generate initial soil analysis
   const handleGetSuggestion = async () => {
     if (!chatSoilData) {
