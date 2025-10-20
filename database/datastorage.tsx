@@ -156,6 +156,22 @@ export async function clearTestRecords(): Promise<void> {
   }
 }
 
+export async function clearTestRecordById(recordId: string): Promise<void> {
+ try {
+    const existingRecords = await getTestRecords();
+    const originalLength = existingRecords.length;
+    const updatedRecords = existingRecords.filter(r => r.id !== recordId);
+    if (updatedRecords.length < originalLength) {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRecords));
+      console.log(`Successfully deleted record with ID: ${recordId}`);
+    } else {
+      console.warn(`Record with ID ${recordId} not found for deletion.`);
+    }
+  } catch (e) {
+    console.error('Error deleting data from storage:', e);
+  }
+}
+
 // ------------------------------------
 // 4. CONTEXT/HOOK FOR GLOBAL ACCESS (Optional but good practice for larger apps)
 // ------------------------------------

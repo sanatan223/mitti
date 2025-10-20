@@ -31,6 +31,8 @@ const MAPPING = {
   'checkmark.circle.fill': 'check-circle',
   'antenna.radiowaves.left.and.right': 'bluetooth',
   'mic.fill': 'mic',
+  'square.and.arrow.up': 'upload',
+  'trash.fill': 'delete',
 } as IconMapping;
 
 /**

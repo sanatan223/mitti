@@ -8,13 +8,13 @@ import { IconSymbol } from '../../components/ui/IconSymbol';
 //import MapView, { Marker, Region } from 'react-native-maps';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { getTestRecords, SoilTestRecord } from '../../database/datastorage';
+import { getTestRecords, SoilTestRecord, clearTestRecordById } from '../../database/datastorage';
 import { useSoilTest, SoilTestProvider } from '../context/SoilTestContext';
 import { useLanguage, Language } from "../context/LanguageContext";
 
 export default function HistoryScreen() {
   const colorScheme = useColorScheme();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [historyRecords, setHistoryRecords] = useState<SoilTestRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
@@ -64,6 +64,11 @@ export default function HistoryScreen() {
   const onLocationPress = (id: string, latitude: number, longitude: number) => {
     // ... (Map logic remains the same)
   };
+
+  const deleteRecord = async(id: string) => {
+    await clearTestRecordById(id);
+    fetchHistory();
+  }
 
   const languages: Language[] = ['English', 'Odia', 'Hindi'];
 
@@ -181,6 +186,13 @@ export default function HistoryScreen() {
                           pH: {test.soilData.pH} - {test.pHStatus} | {test.date} at {test.time}
                         </ThemedText>
                     </View>
+                    <TouchableOpacity 
+                      style={[styles.exportButton, { backgroundColor: Colors[colorScheme ?? 'light'].danger }]}
+                      onPress={() => { deleteRecord(test.id); }}
+                    >
+                      <IconSymbol size={16} name="trash.fill" color="white" />
+                      <ThemedText style={styles.exportText}>{t('Delete')}</ThemedText>
+                    </TouchableOpacity>
                     <IconSymbol size={20} name="chevron.right" color={Colors[colorScheme ?? 'light'].icon} />
                   </TouchableOpacity>
                 ))}

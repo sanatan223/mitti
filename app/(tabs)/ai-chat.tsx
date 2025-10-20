@@ -247,15 +247,23 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
         return;
     }
     const prompt = `
-    Analyze the following soil data and give a spoken expert analysis.
-    Include: 
-    1. Soil type (acidic/basic/neutral)
-    2. Nutrient deficiencies
-    3. Recommendations to improve quality
-    4. Best crops to grow
-    5. Speak like an expert guiding a farmer in ${currentLanguage}.
+    you are a soil analysis expert.
+    Analyze the following JSON soil data. Generate a concise **expert soil analysis report** for a farmer.
+
+    **STRICTLY adhere to these rules:**
+    1.  The **entire response must be 100% in ${currentLanguage}**. Do not use any English.
+    2.  Maintain the voice of a direct, seasoned local agricultural expert.
+    3.  Prioritize actionable, easy-to-understand, respective advice using simple farming terminology.
+    4.  Only include i important sections not any other part like greetings , sign-offs, or pronouns.
+
+    The report must ONLY contain these four sections in order:
+    1.  **pH Status:** Soil type (acidic, neutral, or basic).
+    2.  **Deficiencies:** Specific nutrient shortfalls (e.g., Nitrogen, Phosphorus).
+    3.  **Recommendations:** Actionable steps to improve soil quality.
+    4.  **Crop Suggestions:** Top 3 best-suited crops for this profile.
 
     ${JSON.stringify(chatSoilData)}
+
     `;
 
     await sendToAI(prompt, true);

@@ -19,6 +19,7 @@ export const Colors = {
     accent: '#ffa000', // Orange/Yellow
     neutral: '#ffffff', // White
     lightGray: '#f5f5f5', // Light Grey
+    danger: 'rgba(255, 0, 0, 1)',
   },
   dark: {
     text: '#ECEDEE',
@@ -32,5 +33,6 @@ export const Colors = {
     accent: '#ffb74d', // Lighter orange for dark mode
     neutral: '#ffffff',
     lightGray: '#333333',
+    danger: 'rgba(129, 18, 18, 1)',
   },
 };
