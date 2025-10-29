@@ -8,6 +8,9 @@
         "projectId": "df1dc99a-497f-4a03-99fb-003772f87cc2"
       }
     },
-    "owner": "sanatan_dev"
+    "owner": "sanatan_dev",
+    "android": {
+      "package": "com.sanatan_dev.saathi"
+    }
   }
 }

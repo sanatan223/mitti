@@ -50,7 +50,7 @@ export default function AboutScreen() {
     }
   ];
 
-  const FORMSPREE_ENDPOINT_URL = 'https://formspree.io/f/xdkwwpej'; 
+  const FORMSPREE_ENDPOINT_URL = process.env.EXPO_PUBLIC_FORMSPREE_URL; 
 
   const handleSubmitContact = async () => {
     if (!contactForm.name || !contactForm.email || !contactForm.message) {
