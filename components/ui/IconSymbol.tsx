@@ -33,6 +33,8 @@ const MAPPING = {
   'mic.fill': 'mic',
   'square.and.arrow.up': 'upload',
   'trash.fill': 'delete',
+  'link': 'bluetooth',
+  'play.circle': 'play-arrow',
 } as IconMapping;
 
 /**

@@ -24,7 +24,7 @@ const translations: Record<Language, Record<string, string>> = {
     // ------------------------------------
     // INDEX.TSX (Dashboard)
     // ------------------------------------
-    'The Organic Intelligence Platform': 'The Organic Intelligence Platform',
+    'The': 'The',
     'Organic': 'Organic',
     'Intelligence': 'Intelligence',
     'Platform': 'Platform',
@@ -134,7 +134,7 @@ const translations: Record<Language, Record<string, string>> = {
     'Software engineer with experties in web and mobile app development': 'Software engineer with experties in web and mobile app development',
     'What Farmers Say': 'What Farmers Say',
     '"Saathi AI helped me understand my soil better. The Odia recommendations made it so easy to follow, and my crop yield improved by 30% this season."': '"Saathi AI helped me understand my soil better. The Odia recommendations made it so easy to follow, and my crop yield improved by 30% this season."',
-    'Contact Us': 'Contact Us',
+    'Get In Touch': 'Get In Touch',
     'Have a question or feedback? Reach out to our team.': 'Have a question or feedback? Reach out to our team.',
     'Name': 'Name',
     'Email': 'Email',
@@ -159,9 +159,9 @@ const translations: Record<Language, Record<string, string>> = {
     // ------------------------------------
     // INDEX.TSX (Dashboard)
     // ------------------------------------
-    'The Organic Intelligence Platform': 'ଜୈବିକ ଇଣ୍ଟେଲିଜେନ୍ସ ପ୍ଲାଟଫର୍ମ',
-    'Organic': 'ଜୈବିକ',
-    'Intelligence': 'ଇଣ୍ଟେଲିଜେନ୍ସ',
+    'The': ' ',
+    'Organic ': 'ଜୈବିକ ',
+    'Intelligence ': 'ଇଣ୍ଟେଲିଜେନ୍ସ ',
     'Platform': 'ପ୍ଲାଟଫର୍ମ',
     'Empower your farming with AI-driven soil analysis. Connect your Agni device, get instant soil health insights, and receive personalized recommendations in your local language.': 'AI-ନିର୍ଦ୍ଦେଶିତ ମାଟି ବିଶ୍ଳେଷଣ ସହିତ ଆପଣଙ୍କ ଚାଷକୁ ସଶକ୍ତ କରନ୍ତୁ। ଆପଣଙ୍କ ଅଗ୍ନି ଡିଭାଇସକୁ ସଂଯୋଗ କରନ୍ତୁ, ତୁରନ୍ତ ମାଟି ସ୍ୱାସ୍ଥ୍ୟ ବିଷୟରେ ଜାଣନ୍ତୁ ଏବଂ ଆପଣଙ୍କ ସ୍ଥାନୀୟ ଭାଷାରେ ବ୍ୟକ୍ତିଗତ ପରାମର୍ଶ ପାଆନ୍ତୁ।',
     'Connect Your Device': 'ଆପଣଙ୍କ ଡିଭାଇସ୍ ସଂଯୋଗ କରନ୍ତୁ',
@@ -261,7 +261,7 @@ const translations: Record<Language, Record<string, string>> = {
     'Multi-parameter soil analysis with laboratory-grade accuracy': 'ଲାବୋରେଟୋରୀ-ଗ୍ରେଡ୍ ସଠିକତା ସହିତ ବହୁ-ପାରାମିଟର ମାଟି ବିଶ୍ଳେଷଣ',
     'AI Processing': 'AI ପ୍ରକ୍ରିୟାକରଣ',
     'Machine learning algorithms trained on local soil data': 'ସ୍ଥାନୀୟ ମାଟି ତଥ୍ୟ ଉପରେ ତାଲିମ ପ୍ରାପ୍ତ ମେସିନ୍ ଲର୍ଣ୍ଣିଂ ଆଲଗୋରିଦମ୍',
-    'Local Language Support (About)': 'ସ୍ଥାନୀୟ ଭାଷା ସହାୟତା',
+    'Local Language Support': 'ସ୍ଥାନୀୟ ଭାଷା ସହାୟତା',
     'Recommendations in Odia, Hindi, and English with audio support': 'ଅଡିଓ ସହାୟତା ସହିତ ଓଡିଆ, ହିନ୍ଦୀ ଏବଂ ଇଂରାଜୀରେ ପରାମର୍ଶ',
     'Meet Our Team': 'ଆମ ଦଳକୁ ଭେଟନ୍ତୁ',
     'Project Manager & Hardware Manufacturer': 'ପ୍ରୋଜେକ୍ଟ ମ୍ୟାନେଜର ଏବଂ ହାର୍ଡୱେର ଉତ୍ପାଦକ',
@@ -270,7 +270,8 @@ const translations: Record<Language, Record<string, string>> = {
     'Software engineer with experties in web and mobile app development': 'ୱେବ୍ ଏବଂ ମୋବାଇଲ୍ ଆପ୍ ବିକାଶରେ ବିଶେଷଜ୍ଞତା ଥିବା ସଫ୍ଟୱେର୍ ଇଞ୍ଜିନିୟର୍',
     'What Farmers Say': 'ଚାଷୀମାନେ କ’ଣ କୁହନ୍ତି',
     '"Saathi AI helped me understand my soil better. The Odia recommendations made it so easy to follow, and my crop yield improved by 30% this season."': '"ସାଥୀ AI ମୋତେ ମୋ ମାଟିକୁ ଭଲ ଭାବରେ ବୁଝିବାରେ ସାହାଯ୍ୟ କଲା। ଓଡିଆ ପରାମର୍ଶ ଅନୁସରଣ କରିବା ଏତେ ସହଜ ଥିଲା, ଏବଂ ଏହି ଋତୁରେ ମୋ ଫସଲ ଅମଳ ୩୦% ବୃଦ୍ଧି ପାଇଲା।"',
-    'Contact Us': 'ଆମ ସହିତ ଯୋଗାଯୋଗ କରନ୍ତୁ',
+    '"The AI chat feature is amazing! I can ask questions anytime and get instant answers in my language. It\'s like having an agricultural expert in my pocket."': '"AI ଚାଟ୍ ବୈଶିଷ୍ଟ୍ୟଟି ଆଶ୍ଚର୍ଯ୍ୟଜନକ! ମୁଁ ଯେକୌଣସି ସମୟରେ ପ୍ରଶ୍ନ ପଚାରିପାରିବି ଏବଂ ମୋ ଭାଷାରେ ତୁରନ୍ତ ଉତ୍ତର ପାଇପାରିବି। ଏହା ମୋ ପକେଟରେ ଜଣେ କୃଷି ବିଶେଷଜ୍ଞ ରହିବା ଭଳି।"',
+    'Get In Touch': 'ସମ୍ପର୍କରେ ରୁହନ୍ତୁ',
     'Have a question or feedback? Reach out to our team.': 'ଏକ ପ୍ରଶ୍ନ କିମ୍ବା ମତାମତ ଅଛି କି? ଆମ ଦଳ ସହିତ ଯୋଗାଯୋଗ କରନ୍ତୁ।',
     'Name': 'ନାମ',
     'Email': 'ଇମେଲ୍',
@@ -295,9 +296,9 @@ const translations: Record<Language, Record<string, string>> = {
     // ------------------------------------
     // INDEX.TSX (Dashboard)
     // ------------------------------------
-    'The Organic Intelligence Platform': 'जैविक इंटेलिजेंस प्लेटफॉर्म',
-    'Organic': 'जैविक',
-    'Intelligence': 'इंटेलिजेंस',
+    'The': ' ',
+    'Organic ': 'जैविक ',
+    'Intelligence ': 'इंटेलिजेंस ',
     'Platform': 'प्लेटफॉर्म',
     'Empower your farming with AI-driven soil analysis. Connect your Agni device, get instant soil health insights, and receive personalized recommendations in your local language.': 'AI-संचालित मिट्टी विश्लेषण के साथ अपनी खेती को सशक्त बनाएं। अपने अग्नि डिवाइस को कनेक्ट करें, तुरंत मिट्टी स्वास्थ्य की जानकारी प्राप्त करें और अपनी स्थानीय भाषा में व्यक्तिगत सिफारिशें प्राप्त करें।',
     'Connect Your Device': 'अपना डिवाइस कनेक्ट करें',
@@ -405,8 +406,9 @@ const translations: Record<Language, Record<string, string>> = {
     'Software Engineer & AI Specialist': 'सॉफ्टवेयर इंजीनियर और एआई विशेषज्ञ',
     'Software engineer with experties in web and mobile app development': 'वेब और मोबाइल ऐप विकास में विशेषज्ञता वाला सॉफ्टवेयर इंजीनियर',
     'What Farmers Say': 'किसान क्या कहते हैं',
+    '"The AI chat feature is amazing! I can ask questions anytime and get instant answers in my language. It\'s like having an agricultural expert in my pocket."': '"AI चैट सुविधा कमाल की है! मैं कभी भी सवाल पूछ सकता हूँ और अपनी भाषा में तुरंत जवाब पा सकता हूँ। यह ऐसा है जैसे मेरी जेब में कोई कृषि विशेषज्ञ मौजूद हो।"',
     '"Saathi AI helped me understand my soil better. The Odia recommendations made it so easy to follow, and my crop yield improved by 30% this season."': '"साथी एआई ने मुझे अपनी मिट्टी को बेहतर ढंग से समझने में मदद की। ओडिया सिफारिशों का पालन करना बहुत आसान था, और इस मौसम में मेरी फसल की उपज 30% सुधर गई।"',
-    'Contact Us': 'हमसे संपर्क करें',
+    'Get In Touch': 'संपर्क में रहो',
     'Have a question or feedback? Reach out to our team.': 'कोई प्रश्न या प्रतिक्रिया है? हमारी टीम से संपर्क करें।',
     'Name': 'नाम',
     'Email': 'ईमेल',

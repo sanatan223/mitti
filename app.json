@@ -11,6 +11,9 @@
     "owner": "sanatan_dev",
     "android": {
       "package": "com.sanatan_dev.saathi"
-    }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }

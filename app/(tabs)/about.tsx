@@ -6,11 +6,14 @@ import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { IconSymbol } from '../../components/ui/IconSymbol';
 import { useState } from 'react';
+import LanguageDropdown from '../../components/Languageselector';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function AboutScreen() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: null, message: '' });
   const colorScheme = useColorScheme();
+  const { t } = useLanguage()
   const [contactForm, setContactForm] = useState({
     name: '',
     email: '',
@@ -114,27 +117,25 @@ export default function AboutScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primary }}>
       <ThemedView style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
+          <LanguageDropdown />
+
           {/* Header */}
           <View style={styles.header}>
             <IconSymbol size={64} name="leaf.fill" color={Colors[colorScheme ?? 'light'].primary} />
-            <ThemedText style={styles.title}>About Saathi AI</ThemedText>
+            <ThemedText style={styles.title}>{t('About Saathi AI')}</ThemedText>
             <ThemedText style={styles.subtitle}>
-              Revolutionizing agriculture through organic intelligence, empowering farmers
-              with AI-driven insights for sustainable farming practices.
+              {t('Revolutionizing agriculture through organic intelligence, empowering farmers with AI-driven insights for sustainable farming practices.')}
             </ThemedText>
           </View>
 
           {/* Mission Section */}
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>Our Mission</ThemedText>
+            <ThemedText style={styles.sectionTitle}>{t('Our Mission')}</ThemedText>
             <ThemedText style={styles.missionText}>
-              At Agni Innovations, we believe that technology should serve those who feed the world. 
-              Our mission is to bridge the gap between advanced agricultural science and traditional 
-              farming wisdom, making precision agriculture accessible to every farmer.
+              {t('At Agni Innovations, we believe that technology should serve those who feed the world. Our mission is to bridge the gap between advanced agricultural science and traditional farming wisdom, making precision agriculture accessible to every farmer.')}
             </ThemedText>
             <ThemedText style={styles.missionText}>
-              Saathi AI combines the power of artificial intelligence with deep understanding of 
-              local farming practices, delivering personalized recommendations in farmers' native languages.
+              {t('Saathi AI combines the power of artificial intelligence with deep understanding of local farming practices, delivering personalized recommendations in farmers\' native languages.')}
             </ThemedText>
           </View>
 
@@ -142,25 +143,25 @@ export default function AboutScreen() {
           <View style={styles.statsSection}>
             <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
               <ThemedText style={styles.statNumber}>5+</ThemedText>
-              <ThemedText style={styles.statLabel}>Years of Research</ThemedText>
+              <ThemedText style={styles.statLabel}>{t('Years of Research')}</ThemedText>
             </View>
             <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
               <ThemedText style={styles.statNumber}>50+</ThemedText>
-              <ThemedText style={styles.statLabel}>Farming Partners</ThemedText>
+              <ThemedText style={styles.statLabel}>{t('Farming Partners')}</ThemedText>
             </View>
           </View>
 
           {/* Technology Section */}
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>How Our Technology Works</ThemedText>
+            <ThemedText style={styles.sectionTitle}>{t('How Our Technology Works')}</ThemedText>
             {features.map((feature, index) => (
               <View key={index} style={[styles.featureCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
                 <View style={[styles.featureIcon, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
                   <IconSymbol size={24} name={feature.icon as any} color="white" />
                 </View>
                 <View style={styles.featureContent}>
-                  <ThemedText style={styles.featureTitle}>{feature.title}</ThemedText>
-                  <ThemedText style={styles.featureDescription}>{feature.description}</ThemedText>
+                  <ThemedText style={styles.featureTitle}>{t(feature.title)}</ThemedText>
+                  <ThemedText style={styles.featureDescription}>{t(feature.description)}</ThemedText>
                 </View>
               </View>
             ))}
@@ -176,8 +177,8 @@ export default function AboutScreen() {
                 </View>
                 <View style={styles.teamContent}>
                   <ThemedText style={styles.teamName}>{member.name}</ThemedText>
-                  <ThemedText style={styles.teamRole}>{member.role}</ThemedText>
-                  <ThemedText style={styles.teamDescription}>{member.description}</ThemedText>
+                  <ThemedText style={styles.teamRole}>{t(member.role)}</ThemedText>
+                  <ThemedText style={styles.teamDescription}>{t(member.description)}</ThemedText>
                 </View>
               </View>
             ))}
@@ -185,21 +186,18 @@ export default function AboutScreen() {
 
           {/* Testimonials */}
           <View style={styles.section}>
-            <ThemedText style={styles.sectionTitle}>What Farmers Say</ThemedText>
+            <ThemedText style={styles.sectionTitle}>{t('What Farmers Say')}</ThemedText>
             <View style={[styles.testimonialCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
               <IconSymbol size={32} name="person.crop.circle.fill" color={Colors[colorScheme ?? 'light'].primary} />
               <ThemedText style={styles.testimonialText}>
-                "Saathi AI helped me understand my soil better. The Odia recommendations 
-                made it so easy to follow, and my crop yield improved by 30% this season."
+                {t('"Saathi AI helped me understand my soil better. The Odia recommendations made it so easy to follow, and my crop yield improved by 30% this season."')}
               </ThemedText>
               <ThemedText style={styles.testimonialAuthor}>- Suresh Mohanty, Farmer from Bhubaneswar</ThemedText>
             </View>
             <View style={[styles.testimonialCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
               <IconSymbol size={32} name="person.crop.circle.fill" color={Colors[colorScheme ?? 'light'].primary} />
               <ThemedText style={styles.testimonialText}>
-                "The AI chat feature is amazing! I can ask questions anytime and get 
-                instant answers in my language. It's like having an agricultural expert 
-                in my pocket."
+                {t('"The AI chat feature is amazing! I can ask questions anytime and get instant answers in my language. It\'s like having an agricultural expert in my pocket."')}
               </ThemedText>
               <ThemedText style={styles.testimonialAuthor}>- Lakshmi Sahoo, Progressive Farmer Cuttack</ThemedText>
             </View>

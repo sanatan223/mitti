@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { getTestRecords, SoilTestRecord, clearTestRecordById } from '../../database/datastorage';
 import { useSoilTest, SoilTestProvider } from '../context/SoilTestContext';
 import { useLanguage, Language } from "../context/LanguageContext";
+import LanguageDropdown from '../../components/Languageselector';
 
 export default function HistoryScreen() {
   const colorScheme = useColorScheme();
@@ -77,34 +78,7 @@ export default function HistoryScreen() {
       <SoilTestProvider>
         <ThemedView style={styles.container}>
           <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-            {/* 4. Language Selector Section */}
-            <ThemedView style={styles.languageSelector} lightColor="#f0f0f0" darkColor="#1c1c1c">
-              {languages.map((lang) => (
-                <TouchableOpacity
-                  key={lang}
-                  style={[
-                    styles.languageButton,
-                    currentLanguage === lang && { 
-                      backgroundColor: Colors[colorScheme ?? 'light'].tint,
-                    }
-                  ]}
-                  onPress={() => setLanguage(lang as Language)}
-                >
-                  <ThemedText 
-                    style={[
-                      styles.languageText, 
-                      currentLanguage === lang ? { color: Colors.light.background } : { color: Colors[colorScheme ?? 'light'].text } // White text for active button
-                    ]}
-                    lightColor={currentLanguage === lang ? Colors.light.background : Colors.dark.text}
-                    darkColor={currentLanguage === lang ? Colors.dark.background : Colors.light.text}
-                  >
-                    {/* The language name itself ('English', 'Odia', 'Hindi') can often be used directly as the label, but to translate the phrase "Local Language" if needed: */}
-                    {/* {t(lang)} */} 
-                    {lang}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </ThemedView>
+            <LanguageDropdown />
             <ThemedText style={styles.title}>{t('History & Analytics')}</ThemedText>
             <ThemedText style={styles.subtitle}>
               {t('Track your soil health trends and field performance over time')}

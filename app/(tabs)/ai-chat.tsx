@@ -11,6 +11,7 @@ import { useLanguage, Language } from '../context/LanguageContext';
 import { getTestRecords, SoilData, ConversationMessage, updateTestRecordChatHistory, getTestRecordById } from '../../database/datastorage';
 import { useSoilTest, SoilTestProvider } from '../context/SoilTestContext'; // 👈 Import Context Hook
 import { useRoute } from '@react-navigation/native';
+import LanguageDropdown from '../../components/Languageselector';
 
 interface Message {
   id: number;
@@ -316,34 +317,8 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].primary }}>
       <SoilTestProvider>
         <ThemedView style={styles.container}>
-          {/* 4. Language Selector Section */}
-          <ThemedView style={styles.languageSelector} lightColor="#f0f0f0" darkColor="#1c1c1c">
-          {languages.map((lang) => (
-            <TouchableOpacity
-              key={lang}
-              style={[
-                styles.languageButton,
-                currentLanguage === lang && { 
-                  backgroundColor: Colors[colorScheme ?? 'light'].tint,
-                }
-              ]}
-              onPress={() => setLanguage(lang as Language)}
-            >
-              <ThemedText 
-                style={[
-                  styles.languageText, 
-                  currentLanguage === lang ? { color: Colors.light.background } : { color: Colors[colorScheme ?? 'light'].text } // White text for active button
-                ]}
-                lightColor={currentLanguage === lang ? Colors.light.background : Colors.dark.text}
-                darkColor={currentLanguage === lang ? Colors.dark.background : Colors.light.text}
-              >
-                {/* The language name itself ('English', 'Odia', 'Hindi') can often be used directly as the label, but to translate the phrase "Local Language" if needed: */}
-                {/* {t(lang)} */} 
-                {lang}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-          </ThemedView>
+          <LanguageDropdown />
+          
           {/* HEADER */}
           <View style={styles.header}>
             <View

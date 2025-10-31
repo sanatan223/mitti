@@ -2,17 +2,19 @@ import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ThemedText } from '../../components/ThemedText';
-import { ThemedView } from '../../components/ThemedView';
 import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { IconSymbol } from '../../components/ui/IconSymbol';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { useLanguage, Language } from '../context/LanguageContext'; 
+import { useLanguage, Language } from '../context/LanguageContext';
+import useCountUp from '../assets/animation/useCountUp.js';
+import LanguageDropdown from '../../components/Languageselector';
+
 
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
-  const { currentLanguage, setLanguage, t } = useLanguage(); 
+  const { t } = useLanguage(); 
 
   const [stats, setStats] = useState({
     farmsAnalyzed: 127,
@@ -31,22 +33,30 @@ export default function DashboardScreen() {
 
   const benefits = [
     {
-      icon: 'timer',
+      icon: 'trending-up',
+      color: 'green',
+      backgroundColor: 'rgb(0, 128, 0, 0.2)',
       title: t('Instant Analysis'), 
       description: t('Get comprehensive soil health data in seconds with our Agni device.')
     },
     {
-      icon: 'earth',
+      icon: 'brain',
+      color: 'blue',
+      backgroundColor: 'rgb(0, 0, 255, 0.2)',
       title: t('Local Language'),
       description: t('Receive recommendations in Odia, Hindi, or English with voice support.')
     },
     {
-      icon: 'leaf',
+      icon: 'microscope',
+      color: 'yellow',
+      backgroundColor: 'rgb(255, 255, 0, 0.2)',
       title: t('Sustainable Farming'),
       description: t('AI-powered organic fertilizer recommendations for better crop yield.')
     },
     {
       icon: 'map',
+      color: 'rgb(128, 0, 128) ',
+      backgroundColor: 'rgb(128, 0, 128, 0.2)',
       title: t('Expert Support'),
       description: t('Connect with agricultural experts for personalized advice.')
     }
@@ -78,44 +88,16 @@ export default function DashboardScreen() {
 
   const languages: Language[] = ['English', 'Odia', 'Hindi'];
 
-
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background }}>
+    <SafeAreaView style={{ padding: 20, flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background }}>
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* 4. Language Selector Section */}
-        <ThemedView style={styles.languageSelector} lightColor="#f0f0f0" darkColor="#1c1c1c">
-          {languages.map((lang) => (
-            <TouchableOpacity
-              key={lang}
-              style={[
-                styles.languageButton,
-                currentLanguage === lang && { 
-                  backgroundColor: Colors[colorScheme ?? 'light'].tint,
-                }
-              ]}
-              onPress={() => setLanguage(lang as Language)}
-            >
-              <ThemedText 
-                style={[
-                  styles.languageText, 
-                  currentLanguage === lang ? { color: Colors.light.background } : { color: Colors[colorScheme ?? 'light'].text } // White text for active button
-                ]}
-                lightColor={currentLanguage === lang ? Colors.light.background : Colors.dark.text}
-                darkColor={currentLanguage === lang ? Colors.dark.background : Colors.light.text}
-              >
-                {/* The language name itself ('English', 'Odia', 'Hindi') can often be used directly as the label, but to translate the phrase "Local Language" if needed: */}
-                {/* {t(lang)} */} 
-                {lang}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
-        </ThemedView>
+        <LanguageDropdown />
         
         {/* Hero Text Section */}
         <ThemedText style={styles.heroTitle}>
           {/* Split the translation key for the colored text */}
-          {t('The')} <ThemedText style={{ color: Colors[colorScheme ?? 'light'].primary, fontSize: 36, fontWeight: 'bold' }}>{t('Organic')}</ThemedText>
-          {t('Intelligence')}
+          {t('The')} <ThemedText style={{ color: Colors[colorScheme ?? 'light'].primary, fontSize: 36, fontWeight: 'bold' }}>{t('Organic ')}</ThemedText>
+          {t('Intelligence ')}
           {t('Platform')}
         </ThemedText>
         <ThemedText style={styles.heroSubtitle}>
@@ -145,21 +127,21 @@ export default function DashboardScreen() {
         {/* Live Stats */}
         <View style={styles.statsSection}>
           <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-            <ThemedText style={styles.statNumber}>{stats.farmsAnalyzed}</ThemedText>
+            <ThemedText style={styles.statNumber}>{useCountUp(stats.farmsAnalyzed).toLocaleString()}</ThemedText>
             <ThemedText style={styles.statLabel}>{t('Farms Analyzed')}</ThemedText>
           </View>
           <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-            <ThemedText style={styles.statNumber}>{stats.soilTests}</ThemedText>
+            <ThemedText style={styles.statNumber}>{useCountUp(stats.soilTests).toLocaleString()}</ThemedText>
             <ThemedText style={styles.statLabel}>{t('Soil Tests')}</ThemedText>
           </View>
           <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-            <ThemedText style={styles.statNumber}>{stats.aiRecommendations}</ThemedText>
+            <ThemedText style={styles.statNumber}>{useCountUp(stats.aiRecommendations).toLocaleString()}</ThemedText>
             <ThemedText style={styles.statLabel}>{t('AI Recommendations')}</ThemedText>
           </View>
         </View>
 
         {/* Why Choose Saathi AI */}
-        <View style={styles.benefitsSection}>
+        <View>
           <ThemedText style={styles.sectionTitle}>{t('Why Choose Saathi AI?')}</ThemedText>
           <ThemedText style={styles.sectionSubtitle}>
             {t('Advanced technology meets traditional farming wisdom to maximize your harvest potential.')}
@@ -168,9 +150,9 @@ export default function DashboardScreen() {
           <View style={styles.benefitsGrid}>
             {/* NOTE: benefits.map already uses t(benefit.title) and t(benefit.description) because the data is defined in the component, but we keep the structure here. */}
             {benefits.map((benefit, index) => (
-              <View key={index} style={[styles.benefitCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-                <View style={[styles.benefitIcon, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
-                  <MaterialCommunityIcons name={benefit.icon as any} size={24} color="white" />
+              <View key={index} style={[styles.benefitCard, { backgroundColor: benefit.backgroundColor }]}>
+                <View style={styles.benefitIcon}>
+                  <MaterialCommunityIcons name={benefit.icon as any} size={50} color={benefit.color} />
                 </View>
                 <ThemedText style={styles.benefitTitle}>{t(benefit.title)}</ThemedText>
                 <ThemedText style={styles.benefitDescription}>{t(benefit.description)}</ThemedText>
@@ -220,12 +202,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   heroTitle: {
+    textAlign: 'center',
     fontSize: 36,
     fontWeight: 'bold',
     lineHeight: 44,
     marginBottom: 16,
   },
   heroSubtitle: {
+    textAlign: 'center',
     fontSize: 16,
     lineHeight: 24,
     opacity: 0.7,
@@ -283,7 +267,6 @@ const styles = StyleSheet.create({
   statsSection: {
     flexDirection: 'row',
     gap: 12,
-    paddingHorizontal: 24,
     marginBottom: 32,
   },
   statCard: {
@@ -301,9 +284,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.7,
     textAlign: 'center',
-  },
-  benefitsSection: {
-    padding: 24,
   },
   sectionTitle: {
     fontSize: 28,
@@ -350,7 +330,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   stepsSection: {
-    padding: 24,
+    paddingVertical: 24,
   },
   stepCard: {
     flexDirection: 'row',
@@ -392,26 +372,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
     lineHeight: 20,
-  },
-  languageSelector: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    padding: 8,
-    borderRadius: 12,
-    marginBottom: 20,
-    marginHorizontal: 24,
-  },
-  languageButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginHorizontal: 4,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  languageText: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   scrollContainer: {
     paddingBottom: 40,
