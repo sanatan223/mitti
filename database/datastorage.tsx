@@ -31,7 +31,7 @@ export interface SoilTestRecord {
   soilData: SoilData;
   chatHistory: ConversationMessage[]; // Conversation log related to this test
   // Additional fields for History screen display
-  pHStatus: 'Neutral' | 'Acidic' | 'Alkaline'; 
+  pHStatus: 'Neutral' | 'Acidic' | 'Alkaline' | 'Sl. Acidic' | 'Optimal' | 'Sl. Alkaline';
   pHColor: string;
   latitude: number;
   longitude: number;
@@ -78,13 +78,16 @@ export async function saveTestRecord(newRecord: Omit<SoilTestRecord, 'id' | 'dat
     let pHColor: string;
     if (newRecord.soilData.pH < 6.0) {
         pHStatus = 'Acidic';
-        pHColor = '#f44336'; // Red
-    } else if (newRecord.soilData.pH > 7.5) {
-        pHStatus = 'Alkaline';
-        pHColor = '#2196f3'; // Blue
+        pHColor = '#FF6B6B';
+    } else if (newRecord.soilData.pH >= 6.0 && newRecord.soilData.pH <= 7.0) {
+        pHStatus = 'Sl. Acidic';
+        pHColor = '#FFA500';
+    } else if (newRecord.soilData.pH > 7.0 && newRecord.soilData.pH <= 7.5) {
+        pHStatus = 'Optimal';
+        pHColor = '#4CAF50';
     } else {
-        pHStatus = 'Neutral';
-        pHColor = '#4CAF50'; // Green (assuming primary is green)
+        pHStatus = 'Sl. Alkaline';
+        pHColor = '#2196F3';
     }
 
     // Default Geo-coordinates (replace with actual if GPS is used)
@@ -147,10 +150,11 @@ export async function getTestRecordById(recordId: string): Promise<SoilTestRecor
 /**
  * Clears all test records. (For development/testing)
  */
-export async function clearTestRecords(): Promise<void> {
+export async function clearTestRecords(setTriggerHistoryRefresh: (timestamp: number) => void): Promise<void> {
   try {
     await AsyncStorage.removeItem(STORAGE_KEY);
     console.log('All test records cleared.');
+    setTriggerHistoryRefresh(Date.now()); // Trigger refresh
   } catch (e) {
     console.error('Error clearing data:', e);
   }
@@ -171,12 +175,3 @@ export async function clearTestRecordById(recordId: string): Promise<void> {
     console.error('Error deleting data from storage:', e);
   }
 }
-
-// ------------------------------------
-// 4. CONTEXT/HOOK FOR GLOBAL ACCESS (Optional but good practice for larger apps)
-// ------------------------------------
-/*
-// For this simple example, we will just import and use the utility functions
-// in the individual screen files, but a global context hook is ideal for
-// managing application state changes based on database updates.
-*/

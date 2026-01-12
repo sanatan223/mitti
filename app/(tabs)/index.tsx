@@ -89,7 +89,7 @@ export default function DashboardScreen() {
   const languages: Language[] = ['English', 'Odia', 'Hindi'];
 
   return (
-    <SafeAreaView style={{ padding: 20, flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background }}>
+    <SafeAreaView style={{ padding: 20, flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background, paddingBottom: -40 }}>
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         <LanguageDropdown />
         

@@ -114,7 +114,7 @@ export default function AboutScreen() {
   const statusTextColor = status.type === 'success' ? '#155724' : '#721c24';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primary }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background, paddingBottom: -40 }}>
       <ThemedView style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
           <LanguageDropdown />

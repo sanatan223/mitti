@@ -5,15 +5,16 @@ import { ThemedView } from '../../components/ThemedView';
 import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { IconSymbol } from '../../components/ui/IconSymbol';
-//import MapView, { Marker, Region } from 'react-native-maps';
+import { WebView } from 'react-native-webview';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { getTestRecords, SoilTestRecord, clearTestRecordById } from '../../database/datastorage';
+import { getTestRecords, SoilTestRecord, clearTestRecordById, clearTestRecords } from '../../database/datastorage';
 import { useSoilTest, SoilTestProvider } from '../context/SoilTestContext';
 import { useLanguage, Language } from "../context/LanguageContext";
 import LanguageDropdown from '../../components/Languageselector';
 
 export default function HistoryScreen() {
+  const { setTriggerHistoryRefresh } = useSoilTest();
   const colorScheme = useColorScheme();
   const navigation = useNavigation<any>();
   const [historyRecords, setHistoryRecords] = useState<SoilTestRecord[]>([]);
@@ -21,6 +22,7 @@ export default function HistoryScreen() {
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
   const { triggerHistoryRefresh } = useSoilTest();
   const { currentLanguage, setLanguage, t } = useLanguage();
+  const webViewRef = useRef<WebView>(null);
 
   const fetchHistory = async () => {
     setIsLoading(true);
@@ -31,7 +33,6 @@ export default function HistoryScreen() {
 
   useEffect(() => {
     fetchHistory();
-    // Use an event listener here to re-fetch when the screen comes into focus
     navigation.addListener('focus', fetchHistory);
     return navigation.removeListener('focus', fetchHistory); 
   }, []);
@@ -46,36 +47,130 @@ export default function HistoryScreen() {
     ? (historyRecords.reduce((sum, rec) => sum + rec.soilData.pH, 0) / totalTests).toFixed(1)
     : 'N/A';
   
-  // Mock improvement stat (needs actual historical data logic for a real calculation)
   const stats = {
     totalTests: totalTests,
     avgPH: avgPH,
-    improvement: '+0.3' // Static for now
+    improvement: '+0.3'
+  };
+
+  // Get pH color for marker
+  const getMarkerColor = (pH: number): string => {
+    if (pH < 6.0) return '#FF6B6B'; // Acidic - Red
+    if (pH >= 6.0 && pH < 7.0) return '#FFA500'; // Slightly Acidic - Orange
+    if (pH >= 7.0 && pH <= 7.5) return '#4CAF50'; // Neutral/Optimal - Green
+    if (pH > 7.5 && pH <= 8.5) return '#2196F3'; // Slightly Alkaline - Blue
+    return '#9C27B0'; // Highly Alkaline - Purple
+  };
+
+  // Generate HTML for the map with markers
+  const generateMapHTML = () => {
+    const centerLat = 20.2961;
+    const centerLng = 85.8245;
+    
+    // Prepare markers data
+    const markers = historyRecords.map((test, index) => {
+      const latitude = test.latitude || (centerLat + (Math.random() - 0.5) * 0.05);
+      const longitude = test.longitude || (centerLng + (Math.random() - 0.5) * 0.05);
+      const color = getMarkerColor(test.soilData.pH);
+      
+      return {
+        lat: latitude,
+        lng: longitude,
+        color: color,
+        pH: test.soilData.pH,
+        location: test.location,
+        status: test.pHStatus
+      };
+    });
+
+    // Tile layer URLs
+    const tileLayerURL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+    
+    const attribution = 'Tiles © Esri'
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { width: 100%; height: 100vh; }
+    .custom-marker {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 3px solid white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    const map = L.map('map').setView([${centerLat}, ${centerLng}], 13);
+    
+    L.tileLayer('${tileLayerURL}', {
+      attribution: '${attribution}',
+      maxZoom: 19
+    }).addTo(map);
+
+    const markers = ${JSON.stringify(markers)};
+    
+    markers.forEach(marker => {
+      const icon = L.divIcon({
+        className: 'custom-div-icon',
+        html: \`<div class="custom-marker" style="background-color: \${marker.color}">\${marker.pH}</div>\`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      
+      L.marker([marker.lat, marker.lng], { icon: icon })
+        .addTo(map)
+        .bindPopup(\`
+          <strong>\${marker.location}</strong><br/>
+          pH: \${marker.pH}<br/>
+          Status: \${marker.status}
+        \`);
+    });
+
+    // Fit bounds to show all markers
+    if (markers.length > 0) {
+      const bounds = L.latLngBounds(markers.map(m => [m.lat, m.lng]));
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  </script>
+</body>
+</html>
+    `;
   };
 
   // Function to navigate to AI Chat with the record ID
   const navigateToChat = (recordId: string) => {
-    // In a real app:
     navigation.navigate('ai-chat', { recordId });
     console.log(`Navigating to AIChatScreen with recordId: ${recordId}`);
-    alert(`Redirect to Chat for Test ID: ${recordId} (Check console for mock navigation)`);
   };
 
-  // Function to center the map on a specific marker (retained for structure)
-  const onLocationPress = (id: string, latitude: number, longitude: number) => {
-    // ... (Map logic remains the same)
-  };
 
-  const deleteRecord = async(id: string) => {
+  const deleteRecord = async (id: string) => {
     await clearTestRecordById(id);
     fetchHistory();
-  }
+  };
 
-  const languages: Language[] = ['English', 'Odia', 'Hindi'];
-
+  const clearAllRecords = async () => {
+    await clearTestRecords(setTriggerHistoryRefresh);
+    fetchHistory();
+  };
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? "light"].primary }}>
-      <SoilTestProvider>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background, paddingBottom: -40 }}>
         <ThemedView style={styles.container}>
           <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
             <LanguageDropdown />
@@ -122,64 +217,102 @@ export default function HistoryScreen() {
             <View style={styles.mapSection}>
               <ThemedText style={styles.mapTitle}>{t('Field Test Locations')}</ThemedText>
               <View style={styles.mapContainer}>
-                {/*
-                <MapView
-                  ref={mapRef}
-                  style={styles.map}
-                  initialRegion={initialRegion}
-                >
-                  {testHistory.map((test) => (
-                    <Marker
-                      key={test.id}
-                      coordinate={{ latitude: test.latitude, longitude: test.longitude }}
-                      title={test.location}
-                      description={`pH: ${test.pH} - ${test.status}`}
-                      pinColor={test.color} // Use a prop for the pin color
-                    />
-                  ))}
-                </MapView>
-              */}
-              <ThemedText>{t('Sorry, Map is temporarily unavailable.')}</ThemedText>
+                {historyRecords.length > 0 ? (
+                  <WebView
+                    ref={webViewRef}
+                    originWhitelist={['*']}
+                    source={{ html: generateMapHTML() }}
+                    style={styles.map}
+                    javaScriptEnabled={true}
+                    domStorageEnabled={true}
+                    startInLoadingState={true}
+                    renderLoading={() => (
+                      <View style={styles.mapLoading}>
+                        <ActivityIndicator size="large" color={Colors[colorScheme ?? 'light'].primary} />
+                      </View>
+                    )}
+                  />
+                ) : (
+                  <View style={[styles.emptyMapState, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+                    <IconSymbol size={48} name="map" color={Colors[colorScheme ?? 'light'].icon} />
+                    <ThemedText style={styles.emptyMapText}>
+                      {t('No test locations yet. Start testing to see them on the map!')}
+                    </ThemedText>
+                  </View>
+                )}
               </View>
+              
+              {/* Map Legend */}
+              {historyRecords.length > 0 && (
+                <View style={[styles.mapLegend, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: '#FF6B6B' }]} />
+                    <ThemedText style={styles.legendText}>Acidic (&lt;6.0)</ThemedText>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: '#FFA500' }]} />
+                    <ThemedText style={styles.legendText}>Sl. Acidic (6.0-7.0)</ThemedText>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: '#4CAF50' }]} />
+                    <ThemedText style={styles.legendText}>Optimal (7.0-7.5)</ThemedText>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: '#2196F3' }]} />
+                    <ThemedText style={styles.legendText}>Sl. Alkaline (&gt;7.5)</ThemedText>
+                  </View>
+                </View>
+              )}
             </View>
 
             {/* Test History Log */}
             <View style={styles.historySection}>
               <ThemedText style={styles.historyTitle}>{t('Test History Log')}</ThemedText>
               <View style={styles.historyList}>
-                {historyRecords.map((test) => (
-                  <TouchableOpacity
-                    key={test.id}
-                    style={[styles.historyItem, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}
-                    onPress={() => navigateToChat(test.id)}
-                  >
-                    <View style={[styles.statusIndicator, { backgroundColor: test.pHColor }]} />
-                    <View style={styles.historyContent}>
-                      <ThemedText style={styles.historyLocation}>{test.location}</ThemedText>
+                {isLoading ? (
+                  <ActivityIndicator size="large" color={Colors[colorScheme ?? 'light'].primary} />
+                ) : historyRecords.length === 0 ? (
+                  <View style={[styles.emptyState, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+                    <ThemedText style={styles.emptyStateText}>
+                      {t('No test records yet. Start your first soil test!')}
+                    </ThemedText>
+                  </View>
+                ) : (
+                  historyRecords.map((test) => (
+                    <TouchableOpacity
+                      key={test.id}
+                      style={[styles.historyItem, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}
+                      onPress={() => navigateToChat(test.id)}
+                    >
+                      <View style={[styles.statusIndicator, { backgroundColor: getMarkerColor(test.soilData.pH) }]} />
+                      <View style={styles.historyContent}>
+                        <ThemedText style={styles.historyLocation}>{test.location}</ThemedText>
                         <ThemedText style={styles.historyDetails}>
                           pH: {test.soilData.pH} - {test.pHStatus} | {test.date} at {test.time}
                         </ThemedText>
-                    </View>
-                    <TouchableOpacity 
-                      style={[styles.exportButton, { backgroundColor: Colors[colorScheme ?? 'light'].danger }]}
-                      onPress={() => { deleteRecord(test.id); }}
-                    >
-                      <IconSymbol size={16} name="trash.fill" color="white" />
-                      <ThemedText style={styles.exportText}>{t('Delete')}</ThemedText>
+                      </View>
+                      <TouchableOpacity 
+                        style={[styles.deleteButton, { backgroundColor: Colors[colorScheme ?? 'light'].danger || '#FF6B6B' }]}
+                        onPress={(e) => { 
+                          e.stopPropagation();
+                          deleteRecord(test.id); 
+                        }}
+                      >
+                        <IconSymbol size={16} name="trash.fill" color="white" />
+                      </TouchableOpacity>
+                      <IconSymbol size={20} name="chevron.right" color={Colors[colorScheme ?? 'light'].icon} />
                     </TouchableOpacity>
-                    <IconSymbol size={20} name="chevron.right" color={Colors[colorScheme ?? 'light'].icon} />
-                  </TouchableOpacity>
-                ))}
+                  ))
+                )}
               </View>
             </View>
 
+
           </ScrollView>
         </ThemedView>
-      </SoilTestProvider>
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   languageSelector: {
     flexDirection: 'row',
@@ -268,21 +401,68 @@ const styles = StyleSheet.create({
   },
   mapSection: {
     marginBottom: 24,
-    paddingHorizontal: 0,
+  },
+  mapHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   mapTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 12,
-    paddingHorizontal: 24,
   },
   mapContainer: {
-    height: 250,
+    height: 300,
     borderRadius: 12,
     overflow: 'hidden',
+    marginBottom: 12,
   },
   map: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
+  },
+  mapLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  emptyMapState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    borderRadius: 12,
+  },
+  emptyMapText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 12,
+    opacity: 0.7,
+  },
+  mapLegend: {
+    padding: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  legendText: {
+    fontSize: 11,
   },
   historySection: {
     flex: 1,
@@ -318,6 +498,21 @@ const styles = StyleSheet.create({
   },
   historyDetails: {
     fontSize: 14,
+    opacity: 0.7,
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  emptyState: {
+    padding: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    textAlign: 'center',
     opacity: 0.7,
   },
 });

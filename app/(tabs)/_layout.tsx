@@ -9,13 +9,10 @@ import { IconSymbol } from '../../components/ui/IconSymbol';
 import TabBarBackground from '../../components/ui/TabBarBackground';
 import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
-// 1. Import the provider and hook
 import { LanguageProvider, useLanguage } from '../context/LanguageContext'; 
 import { SoilTestProvider } from '../context/SoilTestContext';
 
-// New component to handle the translation of tab titles
 function TranslatedTabLayout() {
-  // 2. Use the hook to access the translation function
   const { t } = useLanguage();
   const colorScheme = useColorScheme();
 
@@ -28,11 +25,9 @@ function TranslatedTabLayout() {
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
-            // Use a transparent background on iOS to show the blur effect
             position: 'absolute',
           },
           default: {
-            // Added background color to ensure consistency if blur is not desired
             backgroundColor: Colors[colorScheme ?? 'light'].background,
           },
         }),
@@ -40,7 +35,6 @@ function TranslatedTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          // 3. Translate the tab title
           title: t('Dashboard'), 
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
@@ -48,7 +42,6 @@ function TranslatedTabLayout() {
       <Tabs.Screen
         name="live-connect"
         options={{
-          // 3. Translate the tab title
           title: t('Live Connect'), 
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="antenna.radiowaves.left.and.right" color={color} />,
         }}
@@ -56,7 +49,6 @@ function TranslatedTabLayout() {
       <Tabs.Screen
         name="history"
         options={{
-          // 3. Translate the tab title
           title: t('History'), 
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.line.uptrend.xyaxis" color={color} />,
         }}

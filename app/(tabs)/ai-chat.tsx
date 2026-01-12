@@ -314,7 +314,7 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
   const languages: Language[] = ['English', 'Odia', 'Hindi'];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].primary }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].primary, paddingBottom: -40 }}>
       <SoilTestProvider>
         <ThemedView style={styles.container}>
           <LanguageDropdown />
