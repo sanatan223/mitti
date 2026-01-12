@@ -8,11 +8,10 @@ import { IconSymbol } from "../../components/ui/IconSymbol";
 import { useState, useEffect } from "react";
 import { BleManager, Device } from "react-native-ble-plx";
 import { useLanguage, Language } from "../context/LanguageContext";
-import { SoilData, saveTestRecord, SoilTestRecord } from "../../database/datastorage";
+import { getAllSoilRecords, SoilData } from "../../database/datastorage";
 import { useSoilTest, SoilTestProvider } from '../context/SoilTestContext';
 import LanguageDropdown from "../../components/Languageselector";
 import { startAgniSession, stopAgniSession, setLogListener } from "../connect";
-
 
 const manager = new BleManager();
 
@@ -43,25 +42,19 @@ export default function LiveConnectScreen() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const { t } = useLanguage();
-  const [currentLocation, setCurrentLocation] = useState('My Field');
   const [transferLogs, setTransferLogs] = useState<string[]>([]);
-  
-  const { 
-    setLatestRecordId, 
-    setLatestSoilData, 
-    setTriggerHistoryRefresh
-  } = useSoilTest();
-
-  useEffect(() => {
-    if (setTriggerHistoryRefresh) {
-      setSoilData(null);
-    }
-  }, [setTriggerHistoryRefresh]);
 
   useEffect(() => {
     setLogListener((msg) => {
       setTransferLogs(prev => [msg, ...prev]);
     });
+
+    const retriveData = () => {
+      getAllSoilRecords().then((data) => {
+        setSoilData(data[0].data);
+      });
+    };
+    retriveData();
 
     return () => setLogListener(null);
   }, []);
@@ -96,47 +89,6 @@ export default function LiveConnectScreen() {
     stopAgniSession();
     setIsScanning(false);
     addTransferLog(`⏹️ Scanning stopped`);
-  };
-
-  const loadMockData = async () => {
-    setIsScanning(false);
-
-    function randomBetween(min: number, max: number) {
-      return +(Math.random() * (max - min) + min).toFixed(2);
-    }
-
-    const mockData: SoilData = {
-      pH: randomBetween(5.5, 8.0),
-      nitrogen: randomBetween(10, 120),
-      phosphorus: randomBetween(5, 60),
-      potassium: randomBetween(50, 200),
-      moisture: randomBetween(30, 90),
-      temperature: randomBetween(10, 40),
-      ec: randomBetween(0.5, 3.0)
-    };
-
-    setSoilData(mockData);
-    
-    const newRecord: Omit<SoilTestRecord, 'id' | 'date' | 'time'> = {
-      soilData: mockData,
-      chatHistory: [],
-      pHStatus: 'Neutral',
-      pHColor: '',
-      latitude: 0,
-      longitude: 0,
-      location: currentLocation,
-    };
-    
-    const savedRecord = await saveTestRecord(newRecord, currentLocation);
-
-    if (savedRecord) {
-      setLatestRecordId(savedRecord.id);
-      setLatestSoilData(savedRecord.soilData);
-      setTriggerHistoryRefresh(Date.now());
-      Alert.alert("Success", `Connected to Mock Agni Sensor (UID: MOCK-DEVICE-UUID)! Mock data loaded and saved (ID: ${savedRecord.id})!`);
-    } else {
-      Alert.alert("Error", "Failed to save mock data to local storage.");
-    }
   };
 
   return (
@@ -184,13 +136,6 @@ export default function LiveConnectScreen() {
                     {isScanning ? t('Stop Scanning') : t('Scan for Devices')}
                   </Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.scanButton, styles.mockButton]}
-                  onPress={loadMockData}
-                >
-                  <Text style={styles.scanButtonText}>{t('Load Mock Data')}</Text>
-                </TouchableOpacity>
               </View>
             </View>
 
@@ -205,7 +150,7 @@ export default function LiveConnectScreen() {
                     ]}
                   >
                     <ThemedText style={styles.dataLabel}>pH Level</ThemedText>
-                    <ThemedText style={styles.dataValue}>{soilData.pH}</ThemedText>
+                    <ThemedText style={styles.dataValue}>{soilData.ph}</ThemedText>
                   </View>
                   <View
                     style={[
@@ -259,7 +204,7 @@ export default function LiveConnectScreen() {
                   >
                     <ThemedText style={styles.dataLabel}>Temperature</ThemedText>
                     <ThemedText style={styles.dataValue}>
-                      {soilData.temperature}°C
+                      {soilData.temp}°C
                     </ThemedText>
                   </View>
                   <View
@@ -268,9 +213,9 @@ export default function LiveConnectScreen() {
                       { backgroundColor: Colors[colorScheme ?? "light"].lightGray },
                     ]}
                   >
-                    <ThemedText style={styles.dataLabel}>EC</ThemedText>
+                    <ThemedText style={styles.dataLabel}>Conductivity</ThemedText>
                     <ThemedText style={styles.dataValue}>
-                      {soilData.ec} mS/cm
+                      {soilData.conductivity}
                     </ThemedText>
                   </View>
                 </View>

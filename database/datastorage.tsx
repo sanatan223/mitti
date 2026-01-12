@@ -1,177 +1,75 @@
-// datastorage.tsx
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ------------------------------------
-// 1. TYPE DEFINITIONS
-// ------------------------------------
+const STORAGE_KEY = '@agni_soil_records';
 
-// Soil Data Model (from live-connect.tsx mock)
 export interface SoilData {
-  pH: number;
+  temp: number;
+  moisture: number;
   nitrogen: number;
   phosphorus: number;
   potassium: number;
-  moisture: number;
-  temperature: number;
-  ec: number; // electrical conductivity
+  ph: number;
+  conductivity: number;
+  timestamp: string;
+  location: {
+    latitude: number;
+    longitude: number;
+  }
 }
 
-// AI Conversation History Message Model (from ai-chat.tsx)
-export interface ConversationMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-}
-
-// Full Test Record Model (to be stored)
 export interface SoilTestRecord {
-  id: string; // Unique ID for the record (e.g., timestamp)
-  date: string; // 'YYYY-MM-DD'
-  time: string; // 'HH:MM'
-  location: string; // User-defined location
-  soilData: SoilData;
-  chatHistory: ConversationMessage[]; // Conversation log related to this test
-  // Additional fields for History screen display
-  pHStatus: 'Neutral' | 'Acidic' | 'Alkaline' | 'Sl. Acidic' | 'Optimal' | 'Sl. Alkaline';
-  pHColor: string;
-  latitude: number;
-  longitude: number;
+  id: string;
+  data: SoilData;
+  dateSaved: string;
 }
 
-// ------------------------------------
-// 2. CONSTANTS
-// ------------------------------------
-
-const STORAGE_KEY = '@SoilTestRecords';
-
-// ------------------------------------
-// 3. STORAGE UTILITIES (CRUD)
-// ------------------------------------
-
-/**
- * Retrieves all stored soil test records.
- */
-export async function getTestRecords(): Promise<SoilTestRecord[]> {
+export const saveSoilRecord = async (soilData: SoilData): Promise<boolean> => {
   try {
-    const jsonValue = await AsyncStorage.getItem(STORAGE_KEY);
-    return jsonValue != null ? JSON.parse(jsonValue) : [];
-  } catch (e) {
-    console.error('Error reading data from storage:', e);
-    return [];
-  }
-}
+    const existingData = await AsyncStorage.getItem(STORAGE_KEY);
+    const records: SoilTestRecord[] = existingData ? JSON.parse(existingData) : [];
 
-/**
- * Saves a new soil test record.
- */
-export async function saveTestRecord(newRecord: Omit<SoilTestRecord, 'id' | 'date' | 'time'>, location: string = 'New Test Location'): Promise<SoilTestRecord | null> {
-  try {
-    const existingRecords = await getTestRecords();
-    
-    // Create new unique ID and timestamp
-    const now = new Date();
-    const id = now.getTime().toString();
-    const date = now.toISOString().split('T')[0];
-    const time = now.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
-
-    // Determine pH status/color for History screen
-    let pHStatus: SoilTestRecord['pHStatus'];
-    let pHColor: string;
-    if (newRecord.soilData.pH < 6.0) {
-        pHStatus = 'Acidic';
-        pHColor = '#FF6B6B';
-    } else if (newRecord.soilData.pH >= 6.0 && newRecord.soilData.pH <= 7.0) {
-        pHStatus = 'Sl. Acidic';
-        pHColor = '#FFA500';
-    } else if (newRecord.soilData.pH > 7.0 && newRecord.soilData.pH <= 7.5) {
-        pHStatus = 'Optimal';
-        pHColor = '#4CAF50';
-    } else {
-        pHStatus = 'Sl. Alkaline';
-        pHColor = '#2196F3';
-    }
-
-    // Default Geo-coordinates (replace with actual if GPS is used)
-    const defaultLatitude = 20.2961 + Math.random() * 0.01;
-    const defaultLongitude = 85.8245 + Math.random() * 0.01;
-
-
-    const recordToSave: SoilTestRecord = {
-        ...newRecord,
-        id,
-        date,
-        time,
-        location,
-        pHStatus,
-        pHColor,
-        latitude: defaultLatitude,
-        longitude: defaultLongitude,
+    const newRecord: SoilTestRecord = {
+      id: `RE-${Date.now()}`,
+      data: soilData,
+      dateSaved: new Date().toISOString(),
     };
-    
-    const updatedRecords = [recordToSave, ...existingRecords]; // Newest first
+
+    const updatedRecords = [newRecord, ...records];
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRecords));
-    return recordToSave;
-  } catch (e) {
-    console.error('Error saving data to storage:', e);
-    return null;
-  }
-}
-
-/**
- * Updates the chat history for an existing soil test record.
- */
-export async function updateTestRecordChatHistory(recordId: string, newChatHistory: ConversationMessage[]): Promise<boolean> {
-  try {
-    const existingRecords = await getTestRecords();
-    const recordIndex = existingRecords.findIndex(r => r.id === recordId);
-
-    if (recordIndex === -1) {
-      console.warn(`Record with ID ${recordId} not found.`);
-      return false;
-    }
-
-    existingRecords[recordIndex].chatHistory = newChatHistory;
     
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(existingRecords));
     return true;
-  } catch (e) {
-    console.error('Error updating chat history:', e);
+  } catch (error) {
+    console.error("Database Save Error:", error);
     return false;
   }
-}
+};
 
-/**
- * Retrieves a single test record by ID.
- */
-export async function getTestRecordById(recordId: string): Promise<SoilTestRecord | undefined> {
-    const records = await getTestRecords();
-    return records.find(r => r.id === recordId);
-}
-
-/**
- * Clears all test records. (For development/testing)
- */
-export async function clearTestRecords(setTriggerHistoryRefresh: (timestamp: number) => void): Promise<void> {
+export const getAllSoilRecords = async (): Promise<SoilTestRecord[]> => {
   try {
-    await AsyncStorage.removeItem(STORAGE_KEY);
-    console.log('All test records cleared.');
-    setTriggerHistoryRefresh(Date.now()); // Trigger refresh
-  } catch (e) {
-    console.error('Error clearing data:', e);
+    const data = await AsyncStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (error) {
+    console.error("Database Get All Error:", error);
+    return [];
   }
-}
+};
 
-export async function clearTestRecordById(recordId: string): Promise<void> {
- try {
-    const existingRecords = await getTestRecords();
-    const originalLength = existingRecords.length;
-    const updatedRecords = existingRecords.filter(r => r.id !== recordId);
-    if (updatedRecords.length < originalLength) {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRecords));
-      console.log(`Successfully deleted record with ID: ${recordId}`);
-    } else {
-      console.warn(`Record with ID ${recordId} not found for deletion.`);
-    }
-  } catch (e) {
-    console.error('Error deleting data from storage:', e);
+export const getSoilRecordById = async (id: string): Promise<SoilTestRecord | null> => {
+  try {
+    const data = await AsyncStorage.getItem(STORAGE_KEY);
+    if (!data) return null;
+
+    const records: SoilTestRecord[] = JSON.parse(data);
+    const found = records.find((record) => record.id === id);
+    
+    return found || null;
+  } catch (error) {
+    console.error("Database Get By ID Error:", error);
+    return null;
   }
-}
+};
+
+export const clearAllRecords = async () => {
+  await AsyncStorage.removeItem(STORAGE_KEY);
+};
+

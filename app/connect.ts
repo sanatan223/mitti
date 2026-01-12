@@ -1,6 +1,6 @@
 import { BleManager, Device, Subscription } from "react-native-ble-plx";
 import { Buffer } from "buffer";
-import { saveTestRecord, SoilTestRecord, SoilData } from "../database/datastorage";
+import { saveSoilRecord, SoilData, SoilTestRecord } from "../database/datastorage";
 
 const manager = new BleManager();
 
@@ -52,7 +52,7 @@ export const connectDevice = async (device: Device) => {
     d = await d.discoverAllServicesAndCharacteristics();
 
     try {
-        await d.requestMTU(247);
+        await d.requestMTU(512);
         updateStatus("📏 MTU OK");
     } catch (e) {
         console.log("⚠️ MTU FAILED:", e);
@@ -71,40 +71,41 @@ export const connectDevice = async (device: Device) => {
 };
 
 const saveIncomingJson = async (json: string) => {
-  const parsed = JSON.parse(json);
-  console.log("📦 COMPLETE JSON:", parsed);
+  try {
 
-  const toNumber = (v: any) =>
-    v === undefined || v === null || v === "" ? 0 : Number(v);
+    const parsed = JSON.parse(json);
+    const toNumber = (v: any) =>
+      v === undefined || v === null || v === "" ? 0 : Number(v);
 
-  const mapped: SoilData = {
-    pH: toNumber(parsed.pH ?? parsed.ph),
-    nitrogen: toNumber(parsed.nitrogen ?? parsed.N),
-    phosphorus: toNumber(parsed.phosphorus ?? parsed.P),
-    potassium: toNumber(parsed.potassium ?? parsed.K),
-    moisture: toNumber(parsed.moisture),
-    temperature: toNumber(parsed.temperature ?? parsed.temp),
-    ec: toNumber(parsed.ec ?? parsed.EC),
-  };
+    console.log(parsed)
 
-  if (!Object.values(mapped).some(v => v > 0)) {
-    console.log("⚠️ JSON had no numeric soil values — skipped");
-    return;
+    const mapped: SoilData = {
+      temp: toNumber(parsed.parameters.temperature),
+      moisture: toNumber(parsed.parameters.moisture), 
+      nitrogen: toNumber(parsed.parameters.nitrogen),
+      phosphorus: toNumber(parsed.parameters.phosphorus),
+      potassium: toNumber(parsed.parameters.potassium),
+      ph: toNumber(parsed.parameters.ph_value),
+      conductivity: toNumber(parsed.parameters.conductivity),
+      timestamp: parsed.timestamp,
+      location: {
+        latitude: parsed.location.latitude,
+        longitude: parsed.location.longitude
+      }
+    }
+
+    if (!Object.values(mapped).some(v => v > 0)) {
+      console.log("⚠️ JSON had no numeric soil values — skipped");
+      return;
+    }
+
+    const saved = await saveSoilRecord(mapped);
+    if (saved) console.log(`💾 Saved device record (ID: ${saved})`);
+    else console.log("❌ Failed to save parsed device data");
+
+  } catch (error) {
+    console.error("❌ Error saving incoming JSON data:", error);
   }
-
-  const newRecord: Omit<SoilTestRecord, "id" | "date" | "time"> = {
-    soilData: mapped,
-    chatHistory: [],
-    pHStatus: "Neutral",
-    pHColor: "",
-    latitude: 0,
-    longitude: 0,
-    location: "Agni Device",
-  };
-
-  const saved = await saveTestRecord(newRecord, "Agni Device");
-  if (saved) console.log(`💾 Saved device record (ID: ${saved.id})`);
-  else console.log("❌ Failed to save parsed device data");
 };
 
 
@@ -129,7 +130,6 @@ export const subscribeToSoilData = async () => {
 
       if (!char?.value) return;
       const chunk = Buffer.from(char.value, "base64").toString("utf8");
-      updateStatus("📥 Receiving a new file...");
       incomingBuffer += chunk;
 
       if (incomingBuffer.includes("FILE_END")) {
@@ -137,7 +137,8 @@ export const subscribeToSoilData = async () => {
         const endIdx = incomingBuffer.lastIndexOf("}");
         if (startIdx !== -1 && endIdx !== -1) {
           const finalJson = incomingBuffer.substring(startIdx, endIdx + 1);
-          // await saveIncomingJson(finalJson);
+          console.log(finalJson);
+          await saveIncomingJson(finalJson);
           incomingBuffer = incomingBuffer.substring(incomingBuffer.indexOf("FILE_END") + 8);
         }
       }
