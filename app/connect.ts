@@ -1,5 +1,4 @@
 import { BleManager, Device, Subscription } from "react-native-ble-plx";
-import { Buffer } from "buffer";
 import { saveSoilRecord, SoilData, SoilTestRecord } from "../database/datastorage";
 
 const manager = new BleManager();
@@ -10,9 +9,16 @@ const TRANSFER_UUID = "abcdef12-3456-7890-1234-567890abcdef";
 let activeDevice: Device | null = null;
 let notifySub: Subscription | null = null;
 let incomingBuffer = "";
+let collectedData: SoilData[] = [];
+let transferCount = 0;
 
 type LogListener = (message: string) => void;
 let onLog: LogListener | null = null;
+
+let refreshUI: ((val: boolean) => void) | null = null;
+export const setRefreshTrigger = (fn: (val: boolean) => void) => {
+  refreshUI = fn;
+};
 
 export const setLogListener = (callback: LogListener | null) => {
   onLog = callback;
@@ -70,7 +76,7 @@ export const connectDevice = async (device: Device) => {
     return d;
 };
 
-const saveIncomingJson = async (json: string) => {
+const collectIncomingJson = async (json: string) => {
   try {
 
     const parsed = JSON.parse(json);
@@ -81,7 +87,7 @@ const saveIncomingJson = async (json: string) => {
 
     const mapped: SoilData = {
       temp: toNumber(parsed.parameters.temperature),
-      moisture: toNumber(parsed.parameters.moisture), 
+      moisture: toNumber(parsed.parameters.moisture),
       nitrogen: toNumber(parsed.parameters.nitrogen),
       phosphorus: toNumber(parsed.parameters.phosphorus),
       potassium: toNumber(parsed.parameters.potassium),
@@ -99,13 +105,33 @@ const saveIncomingJson = async (json: string) => {
       return;
     }
 
-    const saved = await saveSoilRecord(mapped);
-    if (saved) console.log(`💾 Saved device record (ID: ${saved})`);
-    else console.log("❌ Failed to save parsed device data");
+    collectedData.push(mapped);
+    console.log(`📥 Collected device record (timestamp: ${mapped.timestamp})`);
 
   } catch (error) {
-    console.error("❌ Error saving incoming JSON data:", error);
   }
+};
+
+const processCollectedData = async () => {
+  // Filter unique by timestamp
+  const uniqueData = new Map<string, SoilData>();
+  for (const data of collectedData) {
+    if (!uniqueData.has(data.timestamp)) {
+      uniqueData.set(data.timestamp, data);
+    }
+  }
+
+  const uniqueRecords = Array.from(uniqueData.values());
+  console.log(`🔄 Processing ${collectedData.length} collected records, saving ${uniqueRecords.length} unique timestamped records.`);
+
+  for (const record of uniqueRecords) {
+    const saved = await saveSoilRecord(record);
+    if (saved) console.log(`💾 Saved unique device record (ID: ${saved}, timestamp: ${record.timestamp})`);
+    else console.log("❌ Failed to save unique device data");
+  }
+
+  // Clear collected data after processing
+  collectedData = [];
 };
 
 
@@ -113,8 +139,10 @@ let isClosing = false;
 
 export const subscribeToSoilData = async () => {
   if (!activeDevice) throw new Error("Device not connected");
-  
+
   incomingBuffer = "";
+  collectedData = [];
+  transferCount = 0;
   isClosing = false;
 
   notifySub = activeDevice.monitorCharacteristicForService(
@@ -129,27 +157,53 @@ export const subscribeToSoilData = async () => {
       }
 
       if (!char?.value) return;
-      const chunk = Buffer.from(char.value, "base64").toString("utf8");
+      const chunk = atob(char.value);
       incomingBuffer += chunk;
 
       if (incomingBuffer.includes("FILE_END")) {
         const startIdx = incomingBuffer.indexOf("{");
         const endIdx = incomingBuffer.lastIndexOf("}");
-        if (startIdx !== -1 && endIdx !== -1) {
+
+        if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
           const finalJson = incomingBuffer.substring(startIdx, endIdx + 1);
-          console.log(finalJson);
-          await saveIncomingJson(finalJson);
-          incomingBuffer = incomingBuffer.substring(incomingBuffer.indexOf("FILE_END") + 8);
+          
+          try {
+            // Parse here so collectIncomingJson receives a clean object
+            await collectIncomingJson(finalJson);
+          } catch (e) {
+            console.log("⚠️ Parse skipped for partial/malformed chunk");
+          }
+        }
+
+        // CRITICAL: Clear everything up to the end of the current FILE_END marker
+        // This prevents the "F" or filenames from leaking into the next parse
+        const markerIndex = incomingBuffer.indexOf("FILE_END");
+        const nextLineIndex = incomingBuffer.indexOf("\n", markerIndex);
+        if (refreshUI) {
+          refreshUI(true);
+        }
+        
+        if (nextLineIndex !== -1) {
+          incomingBuffer = incomingBuffer.substring(nextLineIndex + 1);
+        } else {
+          // If no newline, skip past the "FILE_END" and some extra buffer for filename
+          incomingBuffer = incomingBuffer.substring(markerIndex + 20); 
         }
       }
 
       if (incomingBuffer.includes("ALL FILES TRANSFERED") || incomingBuffer.includes("TRANSFER_COMPLETE")) {
-        updateStatus("🏁 FINISHED. CLEANING UP...");
-        
-        isClosing = true;
-        setTimeout(() => {
-          disconnectDevice();
-        }, 1000);
+        transferCount++;
+        if (transferCount < 2) {
+          updateStatus(`🏁 Transfer ${transferCount} finished. Waiting for second transfer...`);
+          incomingBuffer = ""; // Reset buffer for next transfer
+        } else {
+          updateStatus("🏁 Second transfer finished. Processing unique data...");
+          await processCollectedData();
+          isClosing = true;
+          setTimeout(() => {
+            disconnectDevice();
+          }, 1000);
+        }
       }
     }
   );

@@ -1,4 +1,4 @@
-import { ActivityIndicator, StyleSheet, View, Text, TouchableOpacity, Alert, PermissionsAndroid, Platform, ScrollView } from "react-native";
+import { ActivityIndicator, StyleSheet, View, Text, TouchableOpacity, Alert, PermissionsAndroid, Platform, ScrollView, RefreshControl } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from "../../components/ThemedText";
 import { ThemedView } from "../../components/ThemedView";
@@ -9,9 +9,8 @@ import { useState, useEffect } from "react";
 import { BleManager, Device } from "react-native-ble-plx";
 import { useLanguage, Language } from "../context/LanguageContext";
 import { getAllSoilRecords, SoilData } from "../../database/datastorage";
-import { useSoilTest, SoilTestProvider } from '../context/SoilTestContext';
 import LanguageDropdown from "../../components/Languageselector";
-import { startAgniSession, stopAgniSession, setLogListener } from "../connect";
+import { startAgniSession, stopAgniSession, setLogListener, setRefreshTrigger } from "../connect";
 
 const manager = new BleManager();
 
@@ -43,21 +42,33 @@ export default function LiveConnectScreen() {
   const [isScanning, setIsScanning] = useState(false);
   const { t } = useLanguage();
   const [transferLogs, setTransferLogs] = useState<string[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     setLogListener((msg) => {
       setTransferLogs(prev => [msg, ...prev]);
     });
-
-    const retriveData = () => {
-      getAllSoilRecords().then((data) => {
-        setSoilData(data[0].data);
-      });
-    };
     retriveData();
 
-    return () => setLogListener(null);
+    setRefreshTrigger((val) => {
+      if (val) {
+        retriveData()
+      }; // If true is passed, reload the list
+    });
+
+    return () => {
+      setRefreshTrigger(null)
+      setLogListener(null)
+    }; // Cleanup on leave
   }, []);
+
+
+  const retriveData = () => {
+    getAllSoilRecords().then((record) => {
+      setSoilData(record[0]?.data);
+      if (record.length < 1) setSoilData(null)
+    });
+  };
 
   const addTransferLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -81,8 +92,7 @@ export default function LiveConnectScreen() {
     setDevices([]);
     addTransferLog(`🔍 Scanning for devices...`);
 
-    startAgniSession();
-   
+    await startAgniSession();
   };
 
   const stopScanning = () => {
@@ -91,11 +101,32 @@ export default function LiveConnectScreen() {
     addTransferLog(`⏹️ Scanning stopped`);
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await retriveData(); // Refresh the data from storage
+      // Optional: stop scanning if it's running
+      if (isScanning) {
+        stopScanning();
+      }
+    } finally {
+      setRefreshing(false); // Stop the spinner
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background, paddingBottom: -40 }}>
-      <SoilTestProvider>
         <ThemedView style={styles.container}>
-          <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl 
+                refreshing={refreshing} 
+                onRefresh={onRefresh} 
+                colors={[Colors[colorScheme ?? "light"].primary]} // Android spinner color
+                tintColor={Colors[colorScheme ?? "light"].primary} // iOS spinner color
+              />
+            }
+          >
             <LanguageDropdown />
             <ThemedText style={styles.title}>{t('Live Connect')}</ThemedText>
             <ThemedText style={styles.subtitle}>
@@ -223,7 +254,6 @@ export default function LiveConnectScreen() {
             )}
           </ScrollView>
         </ThemedView>
-      </SoilTestProvider>
     </SafeAreaView>
   );
 }

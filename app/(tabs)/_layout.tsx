@@ -9,8 +9,7 @@ import { IconSymbol } from '../../components/ui/IconSymbol';
 import TabBarBackground from '../../components/ui/TabBarBackground';
 import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
-import { LanguageProvider, useLanguage } from '../context/LanguageContext'; 
-import { SoilTestProvider } from '../context/SoilTestContext';
+import { LanguageProvider, useLanguage } from '../context/LanguageContext';
 
 function TranslatedTabLayout() {
   const { t } = useLanguage();
@@ -78,10 +77,8 @@ export default function TabLayout() {
     // 4. Wrap the TranslatedTabLayout with the LanguageProvider
     // Create the context folder and LanguageContext.tsx first!
     return (
-      <SoilTestProvider>
         <LanguageProvider>
             <TranslatedTabLayout />
         </LanguageProvider>
-      </SoilTestProvider>
     )
 }

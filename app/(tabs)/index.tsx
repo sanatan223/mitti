@@ -68,7 +68,7 @@ export default function DashboardScreen() {
       icon: 'power-plug-outline',
       title: t('Connect Device'),
       description: t('Pair and connect your Agni soil sensor device via Bluetooth.'),
-      color: Colors[colorScheme ?? 'light'].primary,
+      color: 'darkgreen',
     },
     {
       number: 2,
@@ -96,7 +96,7 @@ export default function DashboardScreen() {
         {/* Hero Text Section */}
         <ThemedText style={styles.heroTitle}>
           {/* Split the translation key for the colored text */}
-          {t('The')} <ThemedText style={{ color: Colors[colorScheme ?? 'light'].primary, fontSize: 36, fontWeight: 'bold' }}>{t('Organic ')}</ThemedText>
+          {t('The')} <ThemedText style={{ color: Colors[colorScheme ?? 'light'].primary, fontSize: 48, fontWeight: 'bold' }}>{t('Organic ')}</ThemedText>
           {t('Intelligence ')}
           {t('Platform')}
         </ThemedText>
@@ -110,14 +110,14 @@ export default function DashboardScreen() {
             style={[styles.primaryButton, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}
             onPress={handleConnectDevice}
           >
-            <IconSymbol name="link" size={20} color="white" />
-            <ThemedText style={styles.primaryButtonText} lightColor="white" darkColor="white">{t('Connect Your Device')}</ThemedText>
+            <IconSymbol name="link" size={25} color="white" />
+            <ThemedText style={styles.primaryButtonText} lightColor="white" darkColor="white">{t('Connect Agni')}</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.secondaryButton, { borderColor: Colors[colorScheme ?? 'light'].primary }]}
             onPress={handleViewDemo}
           >
-            <IconSymbol size={20} name="play.circle" color={Colors[colorScheme ?? 'light'].primary} />
+            <IconSymbol size={25} name="play.circle" color={Colors[colorScheme ?? 'light'].primary} />
             <ThemedText style={[styles.secondaryButtonText, { color: Colors[colorScheme ?? 'light'].primary }]}>
               {t('View Demo')}
             </ThemedText>
@@ -126,15 +126,15 @@ export default function DashboardScreen() {
 
         {/* Live Stats */}
         <View style={styles.statsSection}>
-          <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+          <View style={[styles.statCard, { backgroundColor: 'rgb(0, 125, 0, 0.2)'}]}>
             <ThemedText style={styles.statNumber}>{useCountUp(stats.farmsAnalyzed).toLocaleString()}</ThemedText>
             <ThemedText style={styles.statLabel}>{t('Farms Analyzed')}</ThemedText>
           </View>
-          <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+          <View style={[styles.statCard, { backgroundColor: 'rgb(0, 125, 0, 0.2)'}]}>
             <ThemedText style={styles.statNumber}>{useCountUp(stats.soilTests).toLocaleString()}</ThemedText>
             <ThemedText style={styles.statLabel}>{t('Soil Tests')}</ThemedText>
           </View>
-          <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
+          <View style={[styles.statCard, { backgroundColor: 'rgb(0, 125, 0, 0.2)' }]}>
             <ThemedText style={styles.statNumber}>{useCountUp(stats.aiRecommendations).toLocaleString()}</ThemedText>
             <ThemedText style={styles.statLabel}>{t('AI Recommendations')}</ThemedText>
           </View>
@@ -175,7 +175,7 @@ export default function DashboardScreen() {
                   <ThemedText style={styles.stepNumberText}>{step.number}</ThemedText>
                 </View>
                 <View style={[styles.stepIcon, { backgroundColor: Colors[colorScheme ?? 'light'].accent }]}>
-                  <MaterialCommunityIcons name={step.icon as any} size={32} color="white" />
+                  <MaterialCommunityIcons name={step.icon as any} size={32} color="green" />
                 </View>
                 <View style={styles.stepContent}>
                   <ThemedText style={styles.stepTitle}>{t(step.title)}</ThemedText>
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     textAlign: 'center',
-    fontSize: 36,
+    fontSize: 40,
     fontWeight: 'bold',
     lineHeight: 44,
     marginBottom: 16,
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   secondaryButton: {
     flex: 1,

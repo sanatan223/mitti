@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = '@agni_soil_records';
+const CHAT_STORAGE_KEY = '@agni_chat_history';
 
 export interface SoilData {
   temp: number;
@@ -69,7 +70,67 @@ export const getSoilRecordById = async (id: string): Promise<SoilTestRecord | nu
   }
 };
 
+export const deleteSoilRecordById = async (id: string): Promise<boolean> => {
+  try {
+    const data = await AsyncStorage.getItem(STORAGE_KEY);
+    if (!data) return false;
+
+    const records: SoilTestRecord[] = JSON.parse(data);
+
+    // 2. Create a new list excluding the one with the target ID
+    const filteredRecords = records.filter((record) => record.id !== id);
+
+    // 3. Save the new list back to storage
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filteredRecords));
+    
+    console.log(`🗑️ Record ${id} deleted successfully.`);
+    return true;
+  } catch (error) {
+    console.error("❌ Database Delete Error:", error);
+    return false;
+  }
+};
+
 export const clearAllRecords = async () => {
   await AsyncStorage.removeItem(STORAGE_KEY);
 };
 
+export interface ChatMessage {
+  id: number;
+  text: string;
+  isUser: boolean;
+  timestamp: string;
+}
+
+// SAVE Chat
+export const saveChatMessage = async (message: ChatMessage) => {
+  try {
+    const existing = await AsyncStorage.getItem(CHAT_STORAGE_KEY);
+    const history = existing ? JSON.parse(existing) : [];
+    const updated = [...history, message];
+    await AsyncStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(updated));
+  } catch (e) {
+    console.error("Chat Save Error", e);
+  }
+};
+
+// GET Chat History
+export const getChatHistory = async (): Promise<ChatMessage[]> => {
+  try {
+    const data = await AsyncStorage.getItem(CHAT_STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const clearChatHistory = async (): Promise<boolean> => {
+  try {
+    await AsyncStorage.removeItem(CHAT_STORAGE_KEY);
+    console.log("🧹 Chat history cleared.");
+    return true;
+  } catch (e) {
+    console.error("❌ Failed to clear chat history", e);
+    return false;
+  }
+};

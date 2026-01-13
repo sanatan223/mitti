@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
@@ -6,45 +6,59 @@ import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { IconSymbol } from '../../components/ui/IconSymbol';
 import { WebView } from 'react-native-webview';
-import { useState, useRef, useEffect } from 'react';
-import { useNavigation } from '@react-navigation/native';
-import { getTestRecords, SoilTestRecord, clearTestRecordById, clearTestRecords } from '../../database/datastorage';
-import { useSoilTest, SoilTestProvider } from '../context/SoilTestContext';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { SoilTestRecord, deleteSoilRecordById, getAllSoilRecords } from '../../database/datastorage';
 import { useLanguage, Language } from "../context/LanguageContext";
 import LanguageDropdown from '../../components/Languageselector';
+import { setRefreshTrigger } from '../connect';
 
 export default function HistoryScreen() {
-  const { setTriggerHistoryRefresh } = useSoilTest();
   const colorScheme = useColorScheme();
   const navigation = useNavigation<any>();
   const [historyRecords, setHistoryRecords] = useState<SoilTestRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
-  const { triggerHistoryRefresh } = useSoilTest();
   const { currentLanguage, setLanguage, t } = useLanguage();
   const webViewRef = useRef<WebView>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const lastRefreshTime = useRef<number>(0);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
   const fetchHistory = async () => {
     setIsLoading(true);
-    const records = await getTestRecords();
+    const records = await getAllSoilRecords();
     setHistoryRecords(records);
     setIsLoading(false);
   };
 
+  // Set up refresh trigger when component mounts
   useEffect(() => {
-    fetchHistory();
-    navigation.addListener('focus', fetchHistory);
-    return navigation.removeListener('focus', fetchHistory); 
+    const refreshCallback = (val: boolean) => {
+      if (val) {
+        fetchHistory();
+      }
+    };
+    setRefreshTrigger(refreshCallback);
+    return () => setRefreshTrigger(null);
   }, []);
 
-  useEffect(() => {
-      fetchHistory();
-  }, [triggerHistoryRefresh]);
+  // Automatically fetch data when screen comes into focus (with throttling)
+  useFocusEffect(
+    useCallback(() => {
+      const now = Date.now();
+      // Only fetch if it's been at least 2 seconds since last refresh
+      if (now - lastRefreshTime.current > 2000) {
+        lastRefreshTime.current = now;
+        fetchHistory();
+      }
+    }, [])
+  );
 
   // Use the fetched data for statistics
   const totalTests = historyRecords.length;
   const avgPH = totalTests > 0 
-    ? (historyRecords.reduce((sum, rec) => sum + rec.soilData.pH, 0) / totalTests).toFixed(1)
+    ? (historyRecords.reduce((sum, rec) => sum + rec.data.ph, 0) / totalTests).toFixed(1)
     : 'N/A';
   
   const stats = {
@@ -69,17 +83,17 @@ export default function HistoryScreen() {
     
     // Prepare markers data
     const markers = historyRecords.map((test, index) => {
-      const latitude = test.latitude || (centerLat + (Math.random() - 0.5) * 0.05);
-      const longitude = test.longitude || (centerLng + (Math.random() - 0.5) * 0.05);
-      const color = getMarkerColor(test.soilData.pH);
+      const latitude = test.data.location.latitude || (centerLat + (Math.random() - 0.5) * 0.05);
+      const longitude = test.data.location.longitude || (centerLng + (Math.random() - 0.5) * 0.05);
+      const color = getMarkerColor(test.data.ph);
       
       return {
         lat: latitude,
         lng: longitude,
         color: color,
-        pH: test.soilData.pH,
-        location: test.location,
-        status: test.pHStatus
+        pH: test.data.ph,
+        location: test.data.location,
+        status: 'acidic'
       };
     });
 
@@ -153,7 +167,6 @@ export default function HistoryScreen() {
     `;
   };
 
-  // Function to navigate to AI Chat with the record ID
   const navigateToChat = (recordId: string) => {
     navigation.navigate('ai-chat', { recordId });
     console.log(`Navigating to AIChatScreen with recordId: ${recordId}`);
@@ -161,18 +174,38 @@ export default function HistoryScreen() {
 
 
   const deleteRecord = async (id: string) => {
-    await clearTestRecordById(id);
+    await deleteSoilRecordById(id);
     fetchHistory();
   };
 
   const clearAllRecords = async () => {
-    await clearTestRecords(setTriggerHistoryRefresh);
+    await clearAllRecords();
     fetchHistory();
   };
+
+  
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchHistory();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].background, paddingBottom: -40 }}>
         <ThemedView style={styles.container}>
-          <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl 
+                refreshing={refreshing} 
+                onRefresh={onRefresh} 
+                colors={[Colors[colorScheme ?? "light"].primary]} // Android spinner color
+                tintColor={Colors[colorScheme ?? "light"].primary} // iOS spinner color
+              />
+            }
+          >
             <LanguageDropdown />
             <ThemedText style={styles.title}>{t('History & Analytics')}</ThemedText>
             <ThemedText style={styles.subtitle}>
@@ -215,7 +248,17 @@ export default function HistoryScreen() {
 
             {/* Interactive Map */}
             <View style={styles.mapSection}>
-              <ThemedText style={styles.mapTitle}>{t('Field Test Locations')}</ThemedText>
+              <View style={styles.mapHeader}>
+                <ThemedText style={styles.mapTitle}>{t('Field Test Locations')}</ThemedText>
+                {historyRecords.length > 0 && (
+                  <TouchableOpacity
+                    style={[styles.fullscreenButton, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}
+                    onPress={() => setIsMapFullscreen(true)}
+                  >
+                    <IconSymbol size={20} name="arrow.up.left.and.arrow.down.right" color={Colors[colorScheme ?? 'light'].text} />
+                  </TouchableOpacity>
+                )}
+              </View>
               <View style={styles.mapContainer}>
                 {historyRecords.length > 0 ? (
                   <WebView
@@ -282,13 +325,13 @@ export default function HistoryScreen() {
                     <TouchableOpacity
                       key={test.id}
                       style={[styles.historyItem, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}
-                      onPress={() => navigateToChat(test.id)}
+                      onPress={() => navigation.navigate('ai-chat', { recordId: test.id })}
                     >
-                      <View style={[styles.statusIndicator, { backgroundColor: getMarkerColor(test.soilData.pH) }]} />
+                      <View style={[styles.statusIndicator, { backgroundColor: getMarkerColor(test.data.ph) }]} />
                       <View style={styles.historyContent}>
-                        <ThemedText style={styles.historyLocation}>{test.location}</ThemedText>
+                        {/* <ThemedText style={styles.historyLocation}>{test.data.location}</ThemedText> */}
                         <ThemedText style={styles.historyDetails}>
-                          pH: {test.soilData.pH} - {test.pHStatus} | {test.date} at {test.time}
+                          pH: {test.data.ph} - {'acidic'} | {test.data.timestamp}
                         </ThemedText>
                       </View>
                       <TouchableOpacity 
@@ -309,6 +352,34 @@ export default function HistoryScreen() {
 
 
           </ScrollView>
+
+          {/* Fullscreen Map Overlay */}
+          {isMapFullscreen && (
+            <View style={styles.fullscreenOverlay}>
+              <View style={styles.fullscreenHeader}>
+                <TouchableOpacity
+                  style={[styles.closeButton, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+                  onPress={() => setIsMapFullscreen(false)}
+                >
+                  <IconSymbol size={24} name="xmark" color="white" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.fullscreenMapContainer}>
+                <WebView
+                  source={{ html: generateMapHTML() }}
+                  style={styles.fullscreenMap}
+                  javaScriptEnabled={true}
+                  domStorageEnabled={true}
+                  startInLoadingState={true}
+                  renderLoading={() => (
+                    <View style={styles.fullscreenMapLoading}>
+                      <ActivityIndicator size="large" color={Colors[colorScheme ?? 'light'].primary} />
+                    </View>
+                  )}
+                />
+              </View>
+            </View>
+          )}
         </ThemedView>
     </SafeAreaView>
   );
@@ -412,6 +483,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
+  fullscreenButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
   mapContainer: {
     height: 300,
     borderRadius: 12,
@@ -514,5 +589,43 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     opacity: 0.7,
+  },
+  fullscreenOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'black',
+    zIndex: 1000,
+  },
+  fullscreenHeader: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 1001,
+  },
+  closeButton: {
+    padding: 12,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fullscreenMapContainer: {
+    flex: 1,
+    marginTop: 100,
+  },
+  fullscreenMap: {
+    flex: 1,
+  },
+  fullscreenMapLoading: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
   },
 });

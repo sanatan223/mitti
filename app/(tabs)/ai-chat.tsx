@@ -5,181 +5,126 @@ import { ThemedView } from '../../components/ThemedView';
 import { Colors } from '../../constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { IconSymbol } from '../../components/ui/IconSymbol';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as Speech from 'expo-speech';
 import { useLanguage, Language } from '../context/LanguageContext';
-import { getTestRecords, SoilData, ConversationMessage, updateTestRecordChatHistory, getTestRecordById } from '../../database/datastorage';
-import { useSoilTest, SoilTestProvider } from '../context/SoilTestContext'; // 👈 Import Context Hook
-import { useRoute } from '@react-navigation/native';
+import { SoilData, getAllSoilRecords, getSoilRecordById, getChatHistory, saveChatMessage, ChatMessage, clearChatHistory } from '../../database/datastorage';
+import { useRoute, useFocusEffect } from '@react-navigation/native';
 import LanguageDropdown from '../../components/Languageselector';
 
-interface Message {
-  id: number;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-}
-
-// Define the route params (for context)
 interface AIChatRouteParams {
     recordId?: string; 
 }
 
 export default function AIChatScreen() {
-  const API_KEY = process.env.EXPO_PUBLIC_API_KEY; // Ensure this is set in your .env file
+  const API_KEY = process.env.EXPO_PUBLIC_API_KEY;
   const colorScheme = useColorScheme();
   const [inputText, setInputText] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const { currentLanguage, setLanguage, t } = useLanguage(); 
-  const [currentRecordId, setCurrentRecordId] = useState<string | null>(null); // State for the active record ID
   const [chatSoilData, setChatSoilData] = useState<SoilData | null>(null);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const { latestRecordId } = useSoilTest(); // 👈 Get the latest ID from context
-
-  // Placeholder for getting navigation params (in a real app, use useRoute())
   const route = useRoute();
-  const { recordId: recordIdFromRoute } = route.params as AIChatRouteParams || {}; 
-  // For this context, we will mock getting the recordId
-  
+  const { recordId } = route.params as { recordId?: string } || {};
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [currentRecordId, setCurrentRecordId] = useState<string | null>(null);
+  const [processedRecordIds, setProcessedRecordIds] = useState<Set<string>>(new Set());
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadChatHistory = async() => {
+        const history = await getChatHistory();
+        setMessages(history);
+      };
+
+      const triggerAutoSuggestion = async () => {
+        if (recordId && !processedRecordIds.has(recordId)) {
+          console.log("🔍 Auto-analyzing record:", recordId);
+
+          const record = await getSoilRecordById(recordId);
+
+          if (record) {
+            const prompt = `
+                      You are "Saathi AI", an agricultural expert who helps farmers analyze soil and gives advice.
+                      You should always remember the previous soil analysis and refer to it if user asks follow-up questions.
+                      Keep tone friendly, structured, and easy to read aloud.
+                      Your response must be entirely in ${currentLanguage}.
+                  `
+            const autoPrompt = prompt + `Analyze this soil data from ${new Date(record.dateSaved).toLocaleDateString()}:
+            Temp: ${record.data.temp}°C,
+            Moisture: ${record.data.moisture}%,
+            pH: ${record.data.ph},
+            NPK: ${record.data.nitrogen}-${record.data.phosphorus}-${record.data.potassium}.
+            Provide recommendations for a farmer.`;
+
+            // Add the user message first
+            const userMessage: ChatMessage = {
+              id: Date.now() + Math.random(),
+              text: "📁 Sent file data for analyzation...",
+              isUser: true,
+              timestamp: new Date().toISOString(),
+            };
+
+            // Update state immediately to show the user message
+            setMessages(prev => [...prev, userMessage]);
+            await saveChatMessage(userMessage);
+
+            // Then send to AI
+            await sendToAI(autoPrompt.trim());
+
+            // Mark this recordId as processed
+            setProcessedRecordIds(prev => new Set(prev).add(recordId));
+          }
+        }
+      };
+
+      // Load history first, then trigger auto-suggestion if needed
+      loadChatHistory().then(() => {
+        triggerAutoSuggestion();
+      });
+    }, [recordId, processedRecordIds, currentLanguage])
+  );
 
   // Load Test Data and History
   useEffect(() => {
-    const loadInitialData = async () => {
-        setIsLoadingHistory(true);
-        let recordToUse;
-        let finalRecordId = recordIdFromRoute || latestRecordId;
+    saveToStorage({
+        id: Date.now() + Math.random(),
+        text: t('Hello! I\'m your Saathi AI Assistant. Ask me anything about soil health and farming in Odia, Hindi, or English.'),
+        isUser: false,
+        timestamp: new Date().toISOString(),
+      })
+  }, []);
 
-        if (finalRecordId) {
-            // Load specific record from History screen OR the latest one from Live Connect
-            recordToUse = await getTestRecordById(finalRecordId);
-            setCurrentRecordId(finalRecordId);
-        } else {
-            // Fallback: load the absolute last one if context is stale (e.g. app reloaded)
-            const records = await getTestRecords();
-            if (records.length > 0) {
-                recordToUse = records[0];
-                setCurrentRecordId(records[0].id);
-            }
-        }
-
-        if (recordToUse) {
-            setChatSoilData(recordToUse.soilData);
-            
-            // Set chat history from the record
-            const initialMessages: Message[] = recordToUse.chatHistory
-                .filter(m => m.role !== 'system')
-                .map((msg, index) => ({
-                    id: index + 2, // Start ID after the welcome message
-                    text: msg.content,
-                    isUser: msg.role === 'user',
-                    timestamp: new Date(),
-                }));
-            
-            setMessages([
-                {
-                    id: 1,
-                    text: t('Hello! I\'m your Saathi AI Assistant. Ask me anything about soil health and farming in Odia, Hindi, or English.'),
-                    isUser: false,
-                    timestamp: new Date(),
-                },
-                ...initialMessages,
-            ]);
-
-            // Set conversation history including system prompt
-            const systemPrompt: ConversationMessage = {
-                role: 'system',
-                content: `
-                    You are "Saathi AI", an agricultural expert who helps farmers analyze soil and gives advice.
-                    You should always remember the previous soil analysis and refer to it if user asks follow-up questions.
-                    Keep tone friendly, structured, and easy to read aloud.
-                    Your response must be entirely in ${currentLanguage}.
-                `
-            };
-            setConversationHistory([systemPrompt, ...recordToUse.chatHistory]);
-
-        } else {
-            // No saved data, use default/mock setup
-            setCurrentRecordId(null);
-            setChatSoilData({ ph: 5.2, moisture: 22, nitrogen: 18, phosphorus: 35, potassium: 15, organic_matter: 2.1 } as unknown as SoilData);
-            // Default welcome message setup (as was originally)
-            setMessages([
-                {
-                    id: 1,
-                    text: t('Hello! I\'m your Saathi AI Assistant. Ask me anything about soil health and farming in Odia, Hindi, or English.'),
-                    isUser: false,
-                    timestamp: new Date(),
-                },
-            ]);
-            setConversationHistory([{
-                role: 'system',
-                content: `
-                    You are "Saathi AI", an agricultural expert who helps farmers analyze soil and gives advice.
-                    You should always remember the previous soil analysis and refer to it if user asks follow-up questions.
-                    Keep tone friendly, structured, and easy to read aloud.
-                    Your response must be entirely in ${currentLanguage}.
-                `
-            }]);
-        }
-        setIsLoadingHistory(false);
-    };
-
-    loadInitialData();
-  }, [recordIdFromRoute, latestRecordId, currentLanguage, t]); // Re-run if navigation params or language changes
-
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
-
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    // 3. Update the system prompt whenever currentLanguage changes
-    setConversationHistory(prevHistory => {
-    // Note: 'role' is explicitly defined as the literal string "system"
-    const newSystemPrompt: ConversationMessage = {
-        role: 'system', // This is the key change
-        content: `You are "Saathi AI", an agricultural expert who helps farmers analyze soil and gives advice. Crucially, you MUST respond in the language specified by the user: ${currentLanguage}. Your response must be entirely in ${currentLanguage}. You should always remember the previous soil analysis and refer to it if user asks follow-...`,
-    };
-
-    // Replace the old system prompt (assuming it's the first element)
-    if (prevHistory.length > 0 && prevHistory[0].role === 'system') {
-        return [newSystemPrompt, ...prevHistory.slice(1)];
+    if (scrollViewRef.current && messages.length > 0) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     }
-    return [newSystemPrompt, ...prevHistory];
-  });
-    
-    // 4. Update the welcome message to refresh dynamically (optional but good UX)
-    setMessages(prevMessages => {
-        if (prevMessages.length > 0 && prevMessages[0].id === 1 && !prevMessages[0].isUser) {
-             return [{
-                 id: 1,
-                 text: t("Hello! I'm your Saathi AI Assistant. Ask me anything about soil health and farming in Odia, Hindi, or English."),
-                 isUser: false,
-                 timestamp: new Date(),
-             }, ...prevMessages.slice(1)];
-        }
-        return prevMessages;
-    });
+  }, [messages]);
 
+const saveToStorage = (newMessage: ChatMessage) => {
+  setMessages((prevMessages) => [...prevMessages, newMessage]);
+  saveChatMessage(newMessage);
+}
 
-  }, [currentLanguage, t]);
-
-  // 🔹 Unified AI call (used by both soil analysis & chat)
-  // Enhanced version with proper role handling
 const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = false) => {
     try {
-      const updatedHistory = [...conversationHistory, { role: 'user' as const, content: newUserMessage }];
-      setConversationHistory(updatedHistory);
+      const updatedHistory = [messages];
 
       const tempMessageId = Date.now();
-      const loadingMessage: Message = {
+      const loadingMessage:ChatMessage= {
         id: tempMessageId,
         text: 'Thinking...',
         isUser: false,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, loadingMessage]);
       
       // Build conversation context
-      const conversationContext = updatedHistory
-        .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
+      const conversationContext = messages
+        .map(msg => `${msg.isUser ? 'User' : 'Assistant'}: ${msg.text}`)
         .join('\n\n');
       
       const prompt = isInitialAnalysis ? 
@@ -213,26 +158,23 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
       
       const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Sorry, no response from AI.';
 
-      // Update UI and state...
       const aiMessage = { 
-        id: tempMessageId, 
+        id: Date.now() + Math.random(), 
         text: aiText, 
         isUser: false, 
-        timestamp: new Date() 
+        timestamp: new Date().toISOString() 
       };
       
       setMessages((prev) =>
         prev.map((msg) => (msg.id === tempMessageId ? aiMessage : msg))
       );
-      
-      const finalConversationHistory = [...updatedHistory, { role: 'assistant' as const, content: aiText }];
-      setConversationHistory(finalConversationHistory);
-      
-      if (currentRecordId) {
-          await updateTestRecordChatHistory(currentRecordId, finalConversationHistory);
-      } else if (isInitialAnalysis) {
-          Alert.alert("Data Error", "Cannot save chat. No soil data record found. Go to 'Live Connect' to save a record first.");
-      }
+      const aiResponse:ChatMessage= {
+        id: Date.now() + Math.random(),
+        text: aiText.trim(),
+        isUser: false,
+        timestamp: new Date().toISOString(),
+      };
+      await saveChatMessage(aiResponse);
 
       handleSpeakMessage(aiText);
     } catch (error) {
@@ -240,47 +182,20 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
       Alert.alert('Error', 'Failed to get AI response from Gemini.');
     }
   };
-   
-  // 🔹 Generate initial soil analysis
-  const handleGetSuggestion = async () => {
-    if (!chatSoilData) {
-        Alert.alert("Error", "No soil data available for analysis. Connect to a device or load mock data first.");
-        return;
-    }
-    const prompt = `
-    you are a soil analysis expert.
-    Analyze the following JSON soil data. Generate a concise **expert soil analysis report** for a farmer.
 
-    **STRICTLY adhere to these rules:**
-    1.  The **entire response must be 100% in ${currentLanguage}**. Do not use any English.
-    2.  Maintain the voice of a direct, seasoned local agricultural expert.
-    3.  Prioritize actionable, easy-to-understand, respective advice using simple farming terminology.
-    4.  Only include i important sections not any other part like greetings , sign-offs, or pronouns.
 
-    The report must ONLY contain these four sections in order:
-    1.  **pH Status:** Soil type (acidic, neutral, or basic).
-    2.  **Deficiencies:** Specific nutrient shortfalls (e.g., Nitrogen, Phosphorus).
-    3.  **Recommendations:** Actionable steps to improve soil quality.
-    4.  **Crop Suggestions:** Top 3 best-suited crops for this profile.
-
-    ${JSON.stringify(chatSoilData)}
-
-    `;
-
-    await sendToAI(prompt, true);
-  };
-
-  // 🔹 User sends a chat message
-  const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
-    const userMessage: Message = {
+  const handleSendMessage = async (textOverride?: string) => {
+    const textToSend = textOverride || inputText;
+    if (!textToSend.trim()) return;
+    const userMessage: ChatMessage = {
       id: Date.now() + Math.random(),
       text: inputText.trim(),
       isUser: true,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMessage]);
-    const question = inputText.trim();
+    await saveChatMessage(userMessage);
+    const question = textToSend.trim();
     setInputText('');
     await sendToAI(question);
   };
@@ -311,11 +226,21 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
     });
   };
 
+  const clearMessages = () => {
+    clearChatHistory();
+    setMessages([]);
+    saveToStorage({
+      id: Date.now() + Math.random(),
+      text: t('Hello! I\'m your Saathi AI Assistant. Ask me anything about soil health and farming in Odia, Hindi, or English.'),
+      isUser: false,
+      timestamp: new Date().toISOString(),
+    })
+  }
+
   const languages: Language[] = ['English', 'Odia', 'Hindi'];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].primary, paddingBottom: -40 }}>
-      <SoilTestProvider>
         <ThemedView style={styles.container}>
           <LanguageDropdown />
           
@@ -330,16 +255,12 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
               <IconSymbol size={24} name="brain.head.profile" color="white" />
               <ThemedText style={styles.assistantTitle}>{t('Saathi AI Assistant')}</ThemedText>
             </View>
-
             <TouchableOpacity
-              style={[
-                styles.assistantBadge,
-                { backgroundColor: Colors[colorScheme ?? 'light'].primary },
-              ]}
-              onPress={handleGetSuggestion}
+            onPress={clearMessages}
             >
-              <IconSymbol size={24} name="leaf" color="white" />
-              <ThemedText style={styles.assistantTitle}>{t('Analyze Soil')}</ThemedText>
+              <ThemedText>
+                Clear Messages
+              </ThemedText>
             </TouchableOpacity>
           </View>
 
@@ -348,7 +269,7 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
             style={styles.chatContainer}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           >
-            <ScrollView style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
+            <ScrollView ref={scrollViewRef} style={styles.messagesContainer} showsVerticalScrollIndicator={false}>
               {messages.map((message) => (
                 <View
                   key={message.id}
@@ -432,7 +353,7 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
                     styles.sendButton,
                     { backgroundColor: Colors[colorScheme ?? 'light'].primary },
                   ]}
-                  onPress={handleSendMessage}
+                  onPress={() => {handleSendMessage()}}
                 >
                   <IconSymbol size={20} name="paperplane.fill" color="white" />
                 </TouchableOpacity>
@@ -440,7 +361,6 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
             </View>
           </KeyboardAvoidingView>
         </ThemedView>
-      </SoilTestProvider>
     </SafeAreaView>
   );
 }
