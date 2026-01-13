@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
@@ -119,7 +119,6 @@ export default function AboutScreen() {
         <ScrollView showsVerticalScrollIndicator={false}>
           <LanguageDropdown />
 
-          {/* Header */}
           <View style={styles.header}>
             <IconSymbol size={64} name="leaf.fill" color={Colors[colorScheme ?? 'light'].primary} />
             <ThemedText style={styles.title}>{t('About Saathi AI')}</ThemedText>
@@ -128,7 +127,6 @@ export default function AboutScreen() {
             </ThemedText>
           </View>
 
-          {/* Mission Section */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>{t('Our Mission')}</ThemedText>
             <ThemedText style={styles.missionText}>
@@ -139,7 +137,6 @@ export default function AboutScreen() {
             </ThemedText>
           </View>
 
-          {/* Stats */}
           <View style={styles.statsSection}>
             <View style={[styles.statCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
               <ThemedText style={styles.statNumber}>5+</ThemedText>
@@ -151,7 +148,6 @@ export default function AboutScreen() {
             </View>
           </View>
 
-          {/* Technology Section */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>{t('How Our Technology Works')}</ThemedText>
             {features.map((feature, index) => (
@@ -167,14 +163,27 @@ export default function AboutScreen() {
             ))}
           </View>
 
-          {/* Team Section */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Meet Our Team</ThemedText>
             {teamMembers.map((member) => (
               <View key={member.id} style={[styles.teamCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-                <View style={[styles.avatar, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
-                  <IconSymbol size={32} name="person.fill" color="white" />
-                </View>
+                {member.id === 1 ? (
+                  <Image
+                    source={{ uri: 'https://saathiai.org/founder.png' }}
+                    style={styles.avatar}
+                    resizeMode="cover"
+                  />
+                ) : member.id === 2 ? (
+                  <Image
+                    source={{ uri: 'https://saathiai.org/co-founder.png' }}
+                    style={styles.avatar}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.avatar, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
+                    <IconSymbol size={32} name="person.fill" color="white" />
+                  </View>
+                )}
                 <View style={styles.teamContent}>
                   <ThemedText style={styles.teamName}>{member.name}</ThemedText>
                   <ThemedText style={styles.teamRole}>{t(member.role)}</ThemedText>
@@ -184,7 +193,6 @@ export default function AboutScreen() {
             ))}
           </View>
 
-          {/* Testimonials */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>{t('What Farmers Say')}</ThemedText>
             <View style={[styles.testimonialCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
@@ -192,25 +200,33 @@ export default function AboutScreen() {
               <ThemedText style={styles.testimonialText}>
                 {t('"Saathi AI helped me understand my soil better. The Odia recommendations made it so easy to follow, and my crop yield improved by 30% this season."')}
               </ThemedText>
-              <ThemedText style={styles.testimonialAuthor}>- Suresh Mohanty, Farmer from Bhubaneswar</ThemedText>
+              <ThemedText style={styles.testimonialAuthor}>- Mahendra Behera, Farmer from Balasore</ThemedText>
             </View>
             <View style={[styles.testimonialCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
               <IconSymbol size={32} name="person.crop.circle.fill" color={Colors[colorScheme ?? 'light'].primary} />
               <ThemedText style={styles.testimonialText}>
                 {t('"The AI chat feature is amazing! I can ask questions anytime and get instant answers in my language. It\'s like having an agricultural expert in my pocket."')}
               </ThemedText>
-              <ThemedText style={styles.testimonialAuthor}>- Lakshmi Sahoo, Progressive Farmer Cuttack</ThemedText>
+              <ThemedText style={styles.testimonialAuthor}>- Ramamani Behera, Progressive Farmer, Cuttack</ThemedText>
             </View>
           </View>
 
-          {/* Contact Section */}
           <View style={styles.section}>
             <ThemedText style={styles.sectionTitle}>Get In Touch</ThemedText>
-            
+
             <View style={styles.contactInfo}>
+              <ThemedText style={styles.contactSubtitle}>Contact Information</ThemedText>
               <View style={styles.contactItem}>
                 <IconSymbol size={20} name="location.fill" color={Colors[colorScheme ?? 'light'].primary} />
-                <ThemedText style={styles.contactText}>Bhadrak auto. College, Bhadrak, Odisha, 756100</ThemedText>
+                <ThemedText style={styles.contactText}>FMU-TBI | Balasore, Odisha, India</ThemedText>
+              </View>
+              <View style={styles.contactItem}>
+                <IconSymbol size={20} name="phone.fill" color={Colors[colorScheme ?? 'light'].primary} />
+                <ThemedText style={styles.contactText}>+91 7205095602</ThemedText>
+              </View>
+              <View style={styles.contactItem}>
+                <IconSymbol size={20} name="envelope.fill" color={Colors[colorScheme ?? 'light'].primary} />
+                <ThemedText style={styles.contactText}>saathi.ai.innovation@gmail.com</ThemedText>
               </View>
             </View>
 
@@ -402,6 +418,11 @@ const styles = StyleSheet.create({
   },
   contactInfo: {
     marginBottom: 24,
+  },
+  contactSubtitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
   },
   contactItem: {
     flexDirection: 'row',

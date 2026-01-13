@@ -9,7 +9,7 @@ import { WebView } from 'react-native-webview';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { SoilTestRecord, deleteSoilRecordById, getAllSoilRecords } from '../../database/datastorage';
-import { useLanguage, Language } from "../context/LanguageContext";
+import { useLanguage } from "../context/LanguageContext";
 import LanguageDropdown from '../../components/Languageselector';
 import { setRefreshTrigger } from '../connect';
 
@@ -18,8 +18,7 @@ export default function HistoryScreen() {
   const navigation = useNavigation<any>();
   const [historyRecords, setHistoryRecords] = useState<SoilTestRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
-  const { currentLanguage, setLanguage, t } = useLanguage();
+  const { t } = useLanguage();
   const webViewRef = useRef<WebView>(null);
   const [refreshing, setRefreshing] = useState(false);
   const lastRefreshTime = useRef<number>(0);
@@ -32,7 +31,6 @@ export default function HistoryScreen() {
     setIsLoading(false);
   };
 
-  // Set up refresh trigger when component mounts
   useEffect(() => {
     const refreshCallback = (val: boolean) => {
       if (val) {
@@ -43,11 +41,9 @@ export default function HistoryScreen() {
     return () => setRefreshTrigger(null);
   }, []);
 
-  // Automatically fetch data when screen comes into focus (with throttling)
   useFocusEffect(
     useCallback(() => {
       const now = Date.now();
-      // Only fetch if it's been at least 2 seconds since last refresh
       if (now - lastRefreshTime.current > 2000) {
         lastRefreshTime.current = now;
         fetchHistory();
@@ -55,51 +51,52 @@ export default function HistoryScreen() {
     }, [])
   );
 
-  // Use the fetched data for statistics
   const totalTests = historyRecords.length;
-  const avgPH = totalTests > 0 
+  const avgPH = totalTests > 0
     ? (historyRecords.reduce((sum, rec) => sum + rec.data.ph, 0) / totalTests).toFixed(1)
     : 'N/A';
-  
+
   const stats = {
     totalTests: totalTests,
     avgPH: avgPH,
     improvement: '+0.3'
   };
 
-  // Get pH color for marker
-  const getMarkerColor = (pH: number): string => {
-    if (pH < 6.0) return '#FF6B6B'; // Acidic - Red
-    if (pH >= 6.0 && pH < 7.0) return '#FFA500'; // Slightly Acidic - Orange
-    if (pH >= 7.0 && pH <= 7.5) return '#4CAF50'; // Neutral/Optimal - Green
-    if (pH > 7.5 && pH <= 8.5) return '#2196F3'; // Slightly Alkaline - Blue
-    return '#9C27B0'; // Highly Alkaline - Purple
+  const getPHCategory = (pH: number): string => {
+    if (pH < 6.0) return 'Acidic';
+    if (pH >= 6.0 && pH < 7.0) return 'Slightly Acidic';
+    if (pH >= 7.0 && pH <= 7.5) return 'Optimal';
+    return 'Alkaline';
   };
 
-  // Generate HTML for the map with markers
+  const getMarkerColor = (pH: number): string => {
+    if (pH < 6.0) return '#FF6B6B';
+    if (pH >= 6.0 && pH < 7.0) return '#FFA500';
+    if (pH >= 7.0 && pH <= 7.5) return '#4CAF50';
+    return '#2196F3';
+  };
+
   const generateMapHTML = () => {
     const centerLat = 20.2961;
     const centerLng = 85.8245;
-    
-    // Prepare markers data
+
     const markers = historyRecords.map((test, index) => {
       const latitude = test.data.location.latitude || (centerLat + (Math.random() - 0.5) * 0.05);
       const longitude = test.data.location.longitude || (centerLng + (Math.random() - 0.5) * 0.05);
       const color = getMarkerColor(test.data.ph);
-      
+
       return {
         lat: latitude,
         lng: longitude,
         color: color,
         pH: test.data.ph,
         location: test.data.location,
-        status: 'acidic'
+        status: getPHCategory(test.data.ph)
       };
     });
 
-    // Tile layer URLs
     const tileLayerURL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-    
+
     const attribution = 'Tiles © Esri'
 
     return `
@@ -131,14 +128,14 @@ export default function HistoryScreen() {
   <div id="map"></div>
   <script>
     const map = L.map('map').setView([${centerLat}, ${centerLng}], 13);
-    
+
     L.tileLayer('${tileLayerURL}', {
       attribution: '${attribution}',
       maxZoom: 19
     }).addTo(map);
 
     const markers = ${JSON.stringify(markers)};
-    
+
     markers.forEach(marker => {
       const icon = L.divIcon({
         className: 'custom-div-icon',
@@ -146,7 +143,7 @@ export default function HistoryScreen() {
         iconSize: [28, 28],
         iconAnchor: [14, 14]
       });
-      
+
       L.marker([marker.lat, marker.lng], { icon: icon })
         .addTo(map)
         .bindPopup(\`
@@ -156,10 +153,13 @@ export default function HistoryScreen() {
         \`);
     });
 
-    // Fit bounds to show all markers
     if (markers.length > 0) {
-      const bounds = L.latLngBounds(markers.map(m => [m.lat, m.lng]));
-      map.fitBounds(bounds, { padding: [50, 50] });
+      if (markers.length === 1) {
+        map.setView([markers[0].lat, markers[0].lng], 15);
+      } else {
+        const bounds = L.latLngBounds(markers.map(m => [m.lat, m.lng]));
+        map.fitBounds(bounds, { padding: [50, 50] });
+      }
     }
   </script>
 </body>
@@ -167,30 +167,15 @@ export default function HistoryScreen() {
     `;
   };
 
-  const navigateToChat = (recordId: string) => {
-    navigation.navigate('ai-chat', { recordId });
-    console.log(`Navigating to AIChatScreen with recordId: ${recordId}`);
-  };
-
-
   const deleteRecord = async (id: string) => {
     await deleteSoilRecordById(id);
     fetchHistory();
   };
 
-  const clearAllRecords = async () => {
-    await clearAllRecords();
-    fetchHistory();
-  };
-
-  
   const onRefresh = async () => {
     setRefreshing(true);
-    try {
-      await fetchHistory();
-    } finally {
-      setRefreshing(false);
-    }
+    await fetchHistory();
+    setRefreshing(false);
   };
 
   return (
@@ -290,7 +275,7 @@ export default function HistoryScreen() {
                 <View style={[styles.mapLegend, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
                   <View style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: '#FF6B6B' }]} />
-                    <ThemedText style={styles.legendText}>Acidic (&lt;6.0)</ThemedText>
+                    <ThemedText style={styles.legendText}>Acidic ({"<"}6.0)</ThemedText>
                   </View>
                   <View style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: '#FFA500' }]} />
@@ -302,7 +287,7 @@ export default function HistoryScreen() {
                   </View>
                   <View style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: '#2196F3' }]} />
-                    <ThemedText style={styles.legendText}>Sl. Alkaline (&gt;7.5)</ThemedText>
+                    <ThemedText style={styles.legendText}>Alkaline ({">"}7.5)</ThemedText>
                   </View>
                 </View>
               )}
@@ -329,9 +314,8 @@ export default function HistoryScreen() {
                     >
                       <View style={[styles.statusIndicator, { backgroundColor: getMarkerColor(test.data.ph) }]} />
                       <View style={styles.historyContent}>
-                        {/* <ThemedText style={styles.historyLocation}>{test.data.location}</ThemedText> */}
                         <ThemedText style={styles.historyDetails}>
-                          pH: {test.data.ph} - {'acidic'} | {test.data.timestamp}
+                          pH: {test.data.ph} - {getPHCategory(test.data.ph)} | {test.data.timestamp}
                         </ThemedText>
                       </View>
                       <TouchableOpacity 
@@ -385,26 +369,6 @@ export default function HistoryScreen() {
   );
 }
 const styles = StyleSheet.create({
-  languageSelector: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    padding: 8,
-    borderRadius: 12,
-    marginBottom: 20,
-    marginHorizontal: 24,
-  },
-  languageButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginHorizontal: 4,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  languageText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
   container: {
     flex: 1,
     padding: 20,
@@ -565,11 +529,6 @@ const styles = StyleSheet.create({
   },
   historyContent: {
     flex: 1,
-  },
-  historyLocation: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
   },
   historyDetails: {
     fontSize: 14,

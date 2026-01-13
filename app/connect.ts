@@ -16,8 +16,14 @@ type LogListener = (message: string) => void;
 let onLog: LogListener | null = null;
 
 let refreshUI: ((val: boolean) => void) | null = null;
+let onSessionEnd: (() => void) | null = null;
+
 export const setRefreshTrigger = (fn: (val: boolean) => void) => {
   refreshUI = fn;
+};
+
+export const setSessionEndCallback = (callback: (() => void) | null) => {
+  onSessionEnd = callback;
 };
 
 export const setLogListener = (callback: LogListener | null) => {
@@ -223,6 +229,11 @@ export const disconnectDevice = async () => {
     activeDevice = null;
     isClosing = false;
     console.log("🔌 Disconnected.");
+
+    // Notify UI that session has ended
+    if (onSessionEnd) {
+      onSessionEnd();
+    }
   }
 };
 

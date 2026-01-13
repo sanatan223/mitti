@@ -65,24 +65,24 @@ export default function DashboardScreen() {
   const steps = [
     {
       number: 1,
-      icon: 'power-plug-outline',
+      icon: 'microscope',
       title: t('Connect Device'),
       description: t('Pair and connect your Agni soil sensor device via Bluetooth.'),
-      color: 'darkgreen',
+      color: '#169344',
     },
     {
       number: 2,
-      icon: 'antenna',
-      title: t('Take Sample'),
-      description: t('Insert the sensor into the soil and press the analysis button on the device.'),
-      color: '#FF9800', // Amber
+      icon: 'bluetooth',
+      title: t('Connect to Saathi'),
+      description: t('Seamlessly transfer data to our AI platform via Bluetooth connectivity.'),
+      color: '#2563eb', // Amber
     },
     {
       number: 3,
       icon: 'brain',
-      title: t('Get Results'),
-      description: t('Receive instant, personalized soil health and fertilizer recommendations.'),
-      color: '#4CAF50', // Green
+      title: t('Get AI Recommendations'),
+      description: t('Receive personalized fertilizer suggestions and farming advice in your language.'),
+      color: '#ca8903', // Green
     },
   ];
 
@@ -171,11 +171,11 @@ export default function DashboardScreen() {
           <View>
             {steps.map((step, index) => (
               <View key={index} style={[styles.stepCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-                <View style={[styles.stepNumber, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
-                  <ThemedText style={styles.stepNumberText}>{step.number}</ThemedText>
+                <View style={[styles.stepNumber, { backgroundColor: step.color, opacity: 0.5}]}>
+                  <ThemedText style={[styles.stepNumberText, { color: step.color, opacity: 2}]}>{step.number}</ThemedText>
                 </View>
-                <View style={[styles.stepIcon, { backgroundColor: Colors[colorScheme ?? 'light'].accent }]}>
-                  <MaterialCommunityIcons name={step.icon as any} size={32} color="green" />
+                <View style={[styles.stepIcon]}>
+                  <MaterialCommunityIcons name={step.icon as any} size={32} color={step.color} />
                 </View>
                 <View style={styles.stepContent}>
                   <ThemedText style={styles.stepTitle}>{t(step.title)}</ThemedText>

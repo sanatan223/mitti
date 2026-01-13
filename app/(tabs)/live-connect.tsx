@@ -10,7 +10,7 @@ import { BleManager, Device } from "react-native-ble-plx";
 import { useLanguage, Language } from "../context/LanguageContext";
 import { getAllSoilRecords, SoilData } from "../../database/datastorage";
 import LanguageDropdown from "../../components/Languageselector";
-import { startAgniSession, stopAgniSession, setLogListener, setRefreshTrigger } from "../connect";
+import { startAgniSession, stopAgniSession, setLogListener, setRefreshTrigger, setSessionEndCallback } from "../connect";
 
 const manager = new BleManager();
 
@@ -53,13 +53,19 @@ export default function LiveConnectScreen() {
     setRefreshTrigger((val) => {
       if (val) {
         retriveData()
-      }; // If true is passed, reload the list
+      };
+    });
+
+    setSessionEndCallback(() => {
+      setIsScanning(false);
+      addTransferLog('🏁 Data transfer completed - scanning stopped automatically');
     });
 
     return () => {
       setRefreshTrigger(null)
       setLogListener(null)
-    }; // Cleanup on leave
+      setSessionEndCallback(null);
+    };
   }, []);
 
 
@@ -269,13 +275,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 8,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 10,
-    marginTop: 16,
-    color: '#333',
-  },
+
   subtitle: {
     fontSize: 16,
     textAlign: "center",
@@ -294,21 +294,6 @@ const styles = StyleSheet.create({
     width: "100%",
     marginBottom: 24,
   },
-  receivingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: 12,
-    gap: 8,
-  },
-  receivingText: {
-    color: '#2E7D32',
-    fontWeight: '600',
-    fontSize: 14,
-  },
   controls: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -326,81 +311,10 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     backgroundColor: '#AAAAAA',
   },
-  disconnectButton: {
-    backgroundColor: '#F44336',
-  },
-  mockButton: {
-    backgroundColor: '#2196F3',
-  },
   scanButtonText: {
     color: "white",
     fontSize: 16,
     fontWeight: "600",
-  },
-  devicesList: {
-    width: '100%',
-    maxHeight: 200,
-    marginBottom: 20,
-  },
-  deviceItem: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4CAF50',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  connectedDevice: {
-    borderLeftColor: '#2E7D32',
-    backgroundColor: '#E8F5E9',
-  },
-  deviceInfo: {
-    flex: 1,
-  },
-  deviceName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  deviceId: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
-  },
-  connectText: {
-    color: '#4CAF50',
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  connectedText: {
-    color: '#2E7D32',
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  logsContainer: {
-    width: '100%',
-    backgroundColor: '#1e1e1e',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-  },
-  logsTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  logsScroll: {
-    maxHeight: 200,
-  },
-  logText: {
-    color: '#00ff00',
-    fontSize: 11,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    marginBottom: 4,
   },
   dataSection: {
     flex: 1,

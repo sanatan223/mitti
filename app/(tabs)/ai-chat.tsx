@@ -13,15 +13,15 @@ import { useRoute, useFocusEffect } from '@react-navigation/native';
 import LanguageDropdown from '../../components/Languageselector';
 
 interface AIChatRouteParams {
-    recordId?: string; 
+    recordId?: string;
 }
 
 export default function AIChatScreen() {
-  const API_KEY = process.env.EXPO_PUBLIC_API_KEY;
+  const API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY;
   const colorScheme = useColorScheme();
   const [inputText, setInputText] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const { currentLanguage, setLanguage, t } = useLanguage(); 
+  const { currentLanguage, setLanguage, t } = useLanguage();
   const [chatSoilData, setChatSoilData] = useState<SoilData | null>(null);
   const route = useRoute();
   const { recordId } = route.params as { recordId?: string } || {};
@@ -39,8 +39,6 @@ export default function AIChatScreen() {
 
       const triggerAutoSuggestion = async () => {
         if (recordId && !processedRecordIds.has(recordId)) {
-          console.log("🔍 Auto-analyzing record:", recordId);
-
           const record = await getSoilRecordById(recordId);
 
           if (record) {
@@ -57,7 +55,6 @@ export default function AIChatScreen() {
             NPK: ${record.data.nitrogen}-${record.data.phosphorus}-${record.data.potassium}.
             Provide recommendations for a farmer.`;
 
-            // Add the user message first
             const userMessage: ChatMessage = {
               id: Date.now() + Math.random(),
               text: "📁 Sent file data for analyzation...",
@@ -65,37 +62,33 @@ export default function AIChatScreen() {
               timestamp: new Date().toISOString(),
             };
 
-            // Update state immediately to show the user message
             setMessages(prev => [...prev, userMessage]);
             await saveChatMessage(userMessage);
 
-            // Then send to AI
             await sendToAI(autoPrompt.trim());
 
-            // Mark this recordId as processed
             setProcessedRecordIds(prev => new Set(prev).add(recordId));
           }
         }
       };
 
-      // Load history first, then trigger auto-suggestion if needed
       loadChatHistory().then(() => {
         triggerAutoSuggestion();
       });
     }, [recordId, processedRecordIds, currentLanguage])
   );
 
-  // Load Test Data and History
   useEffect(() => {
-    saveToStorage({
-        id: Date.now() + Math.random(),
-        text: t('Hello! I\'m your Saathi AI Assistant. Ask me anything about soil health and farming in Odia, Hindi, or English.'),
-        isUser: false,
-        timestamp: new Date().toISOString(),
-      })
+    if (messages.length === 0) {
+      saveToStorage({
+          id: Date.now() + Math.random(),
+          text: t('Hello! I\'m your Saathi AI Assistant. Ask me anything about soil health and farming in Odia, Hindi, or English.'),
+          isUser: false,
+          timestamp: new Date().toISOString(),
+        })
+    }
   }, []);
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (scrollViewRef.current && messages.length > 0) {
       setTimeout(() => {
@@ -104,71 +97,90 @@ export default function AIChatScreen() {
     }
   }, [messages]);
 
-const saveToStorage = (newMessage: ChatMessage) => {
-  setMessages((prevMessages) => [...prevMessages, newMessage]);
-  saveChatMessage(newMessage);
-}
+  const saveToStorage = (newMessage: ChatMessage) => {
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    saveChatMessage(newMessage);
+  }
 
-const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = false) => {
+  const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = false) => {
     try {
-      const updatedHistory = [messages];
-
       const tempMessageId = Date.now();
-      const loadingMessage:ChatMessage= {
+      const loadingMessage: ChatMessage = {
         id: tempMessageId,
         text: 'Thinking...',
         isUser: false,
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, loadingMessage]);
-      
-      // Build conversation context
+
+      const systemPrompt = `You are "Saathi AI", an agricultural expert who helps farmers analyze soil and gives advice.
+You should always remember the previous soil analysis and refer to it if user asks follow-up questions.
+Keep tone friendly, structured, and easy to read aloud.
+Your response must be entirely in ${currentLanguage}.`;
+
       const conversationContext = messages
+        .filter(msg => msg.text !== 'Thinking...')
+        .slice(-10)
         .map(msg => `${msg.isUser ? 'User' : 'Assistant'}: ${msg.text}`)
         .join('\n\n');
-      
-      const prompt = isInitialAnalysis ? 
-        newUserMessage : // For initial analysis, use the full prompt
-        `${conversationContext}\n\nAssistant:`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${API_KEY}`, {
+      const apiMessages = [
+        {
+          role: 'system',
+          content: systemPrompt
+        }
+      ];
+
+      if (isInitialAnalysis) {
+        apiMessages.push({
+          role: 'user',
+          content: newUserMessage
+        });
+      } else {
+        if (conversationContext.trim()) {
+          apiMessages.push({
+            role: 'user',
+            content: `${conversationContext}\n\nUser: ${newUserMessage}`
+          });
+        } else {
+          apiMessages.push({
+            role: 'user',
+            content: newUserMessage
+          });
+        }
+      }
+
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt
-                }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1000,
-          }
+          model: 'llama-3.3-70b-versatile',
+          messages: apiMessages,
+          temperature: 0.7,
+          max_tokens: 1000,
         }),
       });
 
       const data = await response.json();
-      console.log('Gemini Response:', data);
-      
-      const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Sorry, no response from AI.';
+      console.log('Groq API Key:', API_KEY);
+      console.log('Groq Response:', data);
 
-      const aiMessage = { 
-        id: Date.now() + Math.random(), 
-        text: aiText, 
-        isUser: false, 
-        timestamp: new Date().toISOString() 
+      const aiText = data?.choices?.[0]?.message?.content ?? 'Sorry, no response from AI.';
+
+      const aiMessage = {
+        id: Date.now() + Math.random(),
+        text: aiText,
+        isUser: false,
+        timestamp: new Date().toISOString()
       };
-      
+
       setMessages((prev) =>
         prev.map((msg) => (msg.id === tempMessageId ? aiMessage : msg))
       );
-      const aiResponse:ChatMessage= {
+      const aiResponse: ChatMessage = {
         id: Date.now() + Math.random(),
         text: aiText.trim(),
         isUser: false,
@@ -178,11 +190,10 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
 
       handleSpeakMessage(aiText);
     } catch (error) {
-      console.error('Gemini AI Error:', error);
-      Alert.alert('Error', 'Failed to get AI response from Gemini.');
+      console.error('Groq AI Error:', error);
+      Alert.alert('Error', 'Failed to get AI response. Please check your internet connection and try again.');
     }
   };
-
 
   const handleSendMessage = async (textOverride?: string) => {
     const textToSend = textOverride || inputText;
@@ -199,7 +210,6 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
     setInputText('');
     await sendToAI(question);
   };
-
 
   const handleSpeakMessage = async (text: string) => {
     const currentlySpeaking = await Speech.isSpeakingAsync();
@@ -243,7 +253,7 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors[colorScheme ?? 'light'].primary, paddingBottom: -40 }}>
         <ThemedView style={styles.container}>
           <LanguageDropdown />
-          
+
           {/* HEADER */}
           <View style={styles.header}>
             <View
@@ -253,11 +263,14 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
               ]}
             >
               <IconSymbol size={24} name="brain.head.profile" color="white" />
-              <ThemedText style={styles.assistantTitle}>{t('Saathi AI Assistant')}</ThemedText>
+              <ThemedText style={styles.assistantTitle}>{t('AI Assistant')}</ThemedText>
+
             </View>
             <TouchableOpacity
-            onPress={clearMessages}
+              style={[styles.assistantBadge, { backgroundColor: '#FF6B6B' }]}
+              onPress={clearMessages}
             >
+              <IconSymbol size={24} name="trash" color="white" />
               <ThemedText>
                 Clear Messages
               </ThemedText>
@@ -343,7 +356,7 @@ const sendToAI = async (newUserMessage: string, isInitialAnalysis: boolean = fal
                 </TouchableOpacity>
                 <TextInput
                   style={[styles.textInput, { color: Colors[colorScheme ?? 'light'].text }]}
-                  placeholder={t('Type your question or command...')} 
+                  placeholder={t('Type your question or command...')}
                   value={inputText}
                   onChangeText={setInputText}
                   multiline
@@ -390,32 +403,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   assistantBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    gap: 8,
-    marginBottom: 8,
   },
   assistantTitle: {
     color: 'white',
     fontWeight: '600',
   },
-  assistantSubtitle: {
-    textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 16,
-  },
-  languageSection: {
-    flexDirection: 'row',
-    gap: 8,
+  clearButton: {
+    padding: 8,
+    borderRadius: 20,
   },
   chatContainer: {
     flex: 1,
