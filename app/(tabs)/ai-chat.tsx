@@ -267,13 +267,11 @@ Your response must be entirely in ${currentLanguage}.`;
 
             </View>
             <TouchableOpacity
-              style={[styles.assistantBadge, { backgroundColor: '#FF6B6B' }]}
+              style={[styles.clearButton, { backgroundColor: '#FF6B6B' }]}
               onPress={clearMessages}
             >
               <IconSymbol size={24} name="trash" color="white" />
-              <ThemedText>
-                Clear Messages
-              </ThemedText>
+              <ThemedText>Clear</ThemedText>
             </TouchableOpacity>
           </View>
 
@@ -407,7 +405,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 18,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
@@ -417,14 +415,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
+    position: 'absolute',
+    top: -54
   },
   assistantTitle: {
     color: 'white',
     fontWeight: '600',
   },
   clearButton: {
-    padding: 8,
+    position: 'absolute',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 20,
+    padding: 8,
+    top: -10,
+    right: 20
   },
   chatContainer: {
     flex: 1,

@@ -77,8 +77,8 @@ export default function HistoryScreen() {
   };
 
   const generateMapHTML = () => {
-    const centerLat = 20.2961;
-    const centerLng = 85.8245;
+    const centerLat = 21.06525;
+    const centerLng = 86.4885;
 
     const markers = historyRecords.map((test, index) => {
       const latitude = test.data.location.latitude || (centerLat + (Math.random() - 0.5) * 0.05);
@@ -235,39 +235,28 @@ export default function HistoryScreen() {
             <View style={styles.mapSection}>
               <View style={styles.mapHeader}>
                 <ThemedText style={styles.mapTitle}>{t('Field Test Locations')}</ThemedText>
-                {historyRecords.length > 0 && (
-                  <TouchableOpacity
-                    style={[styles.fullscreenButton, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}
-                    onPress={() => setIsMapFullscreen(true)}
-                  >
-                    <IconSymbol size={20} name="arrow.up.left.and.arrow.down.right" color={Colors[colorScheme ?? 'light'].text} />
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  style={[styles.fullscreenButton, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}
+                  onPress={() => setIsMapFullscreen(true)}
+                >
+                  <IconSymbol size={20} name="arrow.up.left.and.arrow.down.right" color={Colors[colorScheme ?? 'light'].text} />
+                </TouchableOpacity>
               </View>
               <View style={styles.mapContainer}>
-                {historyRecords.length > 0 ? (
-                  <WebView
-                    ref={webViewRef}
-                    originWhitelist={['*']}
-                    source={{ html: generateMapHTML() }}
-                    style={styles.map}
-                    javaScriptEnabled={true}
-                    domStorageEnabled={true}
-                    startInLoadingState={true}
-                    renderLoading={() => (
-                      <View style={styles.mapLoading}>
-                        <ActivityIndicator size="large" color={Colors[colorScheme ?? 'light'].primary} />
-                      </View>
-                    )}
-                  />
-                ) : (
-                  <View style={[styles.emptyMapState, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-                    <IconSymbol size={48} name="map" color={Colors[colorScheme ?? 'light'].icon} />
-                    <ThemedText style={styles.emptyMapText}>
-                      {t('No test locations yet. Start testing to see them on the map!')}
-                    </ThemedText>
-                  </View>
-                )}
+                <WebView
+                  ref={webViewRef}
+                  originWhitelist={['*']}
+                  source={{ html: generateMapHTML() }}
+                  style={styles.map}
+                  javaScriptEnabled={true}
+                  domStorageEnabled={true}
+                  startInLoadingState={true}
+                  renderLoading={() => (
+                    <View style={styles.mapLoading}>
+                      <ActivityIndicator size="large" color={Colors[colorScheme ?? 'light'].primary} />
+                    </View>
+                  )}
+                />
               </View>
               
               {/* Map Legend */}

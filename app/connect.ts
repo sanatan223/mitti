@@ -31,7 +31,7 @@ export const setLogListener = (callback: LogListener | null) => {
 };
 
 const updateStatus = (msg: string) => {
-  console.log(msg);
+  // Silent logging - only pass to UI if listener exists
   if (onLog) onLog(msg);
 };
 
@@ -42,7 +42,6 @@ export const scanForAgni = (): Promise<Device> =>
 
         manager.startDeviceScan(null, null, (error, device) => {
             if (error) {
-                console.log("❌ SCAN ERROR", error);
                 reject(error);
                 return;
             }
@@ -67,16 +66,13 @@ export const connectDevice = async (device: Device) => {
         await d.requestMTU(512);
         updateStatus("📏 MTU OK");
     } catch (e) {
-        console.log("⚠️ MTU FAILED:", e);
+        // Silent MTU failure
     }
 
     activeDevice = d;
 
     d.onDisconnected((e) => {
-        console.log(
-            "🔌 DISCONNECTED:",
-            e ? e.message : "sensor closed the link"
-        );
+        // Silent disconnection logging
     });
 
     return d;
@@ -84,12 +80,15 @@ export const connectDevice = async (device: Device) => {
 
 const collectIncomingJson = async (json: string) => {
   try {
-
     const parsed = JSON.parse(json);
+
+    // Validate basic structure
+    if (!parsed.parameters || !parsed.timestamp || !parsed.location) {
+      return;
+    }
+
     const toNumber = (v: any) =>
       v === undefined || v === null || v === "" ? 0 : Number(v);
-
-    console.log(parsed)
 
     const mapped: SoilData = {
       temp: toNumber(parsed.parameters.temperature),
@@ -99,22 +98,23 @@ const collectIncomingJson = async (json: string) => {
       potassium: toNumber(parsed.parameters.potassium),
       ph: toNumber(parsed.parameters.ph_value),
       conductivity: toNumber(parsed.parameters.conductivity),
-      timestamp: parsed.timestamp,
+      timestamp: parsed.timestamp || new Date().toISOString(),
       location: {
-        latitude: parsed.location.latitude,
-        longitude: parsed.location.longitude
+        latitude: toNumber(parsed.location.latitude) || 0,
+        longitude: toNumber(parsed.location.longitude) || 0
       }
-    }
+    };
 
-    if (!Object.values(mapped).some(v => v > 0)) {
-      console.log("⚠️ JSON had no numeric soil values — skipped");
+    // Check if we have at least some valid numeric data
+    const numericValues = [mapped.temp, mapped.moisture, mapped.nitrogen, mapped.phosphorus, mapped.potassium, mapped.ph, mapped.conductivity];
+    if (!numericValues.some(v => !isNaN(v) && v > 0)) {
       return;
     }
 
     collectedData.push(mapped);
-    console.log(`📥 Collected device record (timestamp: ${mapped.timestamp})`);
 
   } catch (error) {
+    // Silent error handling
   }
 };
 
@@ -128,12 +128,9 @@ const processCollectedData = async () => {
   }
 
   const uniqueRecords = Array.from(uniqueData.values());
-  console.log(`🔄 Processing ${collectedData.length} collected records, saving ${uniqueRecords.length} unique timestamped records.`);
 
   for (const record of uniqueRecords) {
-    const saved = await saveSoilRecord(record);
-    if (saved) console.log(`💾 Saved unique device record (ID: ${saved}, timestamp: ${record.timestamp})`);
-    else console.log("❌ Failed to save unique device data");
+    await saveSoilRecord(record);
   }
 
   // Clear collected data after processing
@@ -158,7 +155,6 @@ export const subscribeToSoilData = async () => {
       if (isClosing) return;
 
       if (err) {
-        console.log("ℹ️ BLE Stream ended naturally.");
         return;
       }
 
@@ -177,7 +173,7 @@ export const subscribeToSoilData = async () => {
             // Parse here so collectIncomingJson receives a clean object
             await collectIncomingJson(finalJson);
           } catch (e) {
-            console.log("⚠️ Parse skipped for partial/malformed chunk");
+            // Silent parse error
           }
         }
 
@@ -224,11 +220,10 @@ export const disconnectDevice = async () => {
       }
     }
   } catch (e) {
-    console.log("⚠️ Handled disconnect error (Safe):", e);
+    // Silent handled disconnect error
   } finally {
     activeDevice = null;
     isClosing = false;
-    console.log("🔌 Disconnected.");
 
     // Notify UI that session has ended
     if (onSessionEnd) {

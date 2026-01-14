@@ -1,4 +1,4 @@
-import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, ScrollView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ThemedText } from '../../components/ThemedText';
@@ -10,11 +10,12 @@ import { router } from 'expo-router';
 import { useLanguage, Language } from '../context/LanguageContext';
 import useCountUp from '../assets/animation/useCountUp.js';
 import LanguageDropdown from '../../components/Languageselector';
+import { WebView } from 'react-native-webview';
 
 
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
-  const { t } = useLanguage(); 
+  const { t } = useLanguage();
 
   const [stats, setStats] = useState({
     farmsAnalyzed: 127,
@@ -22,13 +23,14 @@ export default function DashboardScreen() {
     aiRecommendations: 195
   });
 
+  const [showDemoModal, setShowDemoModal] = useState(false);
+
   const handleConnectDevice = () => {
     router.push('/(tabs)/live-connect');
   };
 
   const handleViewDemo = () => {
-    // Show demo or tutorial
-    console.log('Show demo');
+    setShowDemoModal(true);
   };
 
   const benefits = [
@@ -186,6 +188,34 @@ export default function DashboardScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Demo Video Modal */}
+      <Modal
+        visible={showDemoModal}
+        animationType="slide"
+        onRequestClose={() => setShowDemoModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              onPress={() => setShowDemoModal(false)}
+              style={styles.closeButton}
+            >
+              <IconSymbol name="xmark" size={24} color="white" />
+            </TouchableOpacity>
+            <ThemedText style={styles.modalTitle}>Product Demo</ThemedText>
+          </View>
+          <WebView
+            source={{ uri: 'https://drive.google.com/file/d/1tBXFsxUW56PWFOuRvl-3ZHhvm3CHVXIk/view?usp=drive_link' }}
+            style={styles.webView}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            startInLoadingState={true}
+            scalesPageToFit={true}
+            allowsFullscreenVideo={true}
+          />
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -375,5 +405,27 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     paddingBottom: 40,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'black',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: '#169344', // Primary green color
+  },
+  closeButton: {
+    padding: 8,
+  },
+  modalTitle: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  webView: {
+    flex: 1,
   },
 });

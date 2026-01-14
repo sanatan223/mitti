@@ -1,4 +1,4 @@
-import { StyleSheet, View, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '../../components/ThemedText';
 import { ThemedView } from '../../components/ThemedView';
@@ -8,6 +8,7 @@ import { IconSymbol } from '../../components/ui/IconSymbol';
 import { useState } from 'react';
 import LanguageDropdown from '../../components/Languageselector';
 import { useLanguage } from '../context/LanguageContext';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 export default function AboutScreen() {
   const [loading, setLoading] = useState(false);
@@ -24,33 +25,39 @@ export default function AboutScreen() {
     {
       id: 1,
       name: 'Nilambar Behera',
-      role: 'Project Manager & Hardware Manufacturer',
-      description: 'BCA graduate with interest in agricultural technology solutions'
+      role: 'Founder & Lead Architect( IoT & AI LLM)',
+      description: 'Bhadrak Auto.clg, BCA'
     },
     {
       id: 2,
       name: 'Sanatan Sethi',
-      role: 'Software Engineer & AI Specialist',
-      description: 'Software engineer with experties in web and mobile app development'
+      role: 'Co-Founder & Mobile App Developer',
+      description: 'Bhadrak Auto.clg, BCA'
     }
   ];
 
   const features = [
     {
-      icon: 'cpu',
-      title: 'Advanced Sensors',
-      description: 'Multi-parameter soil analysis with laboratory-grade accuracy'
+      number: 1,
+      icon: 'microscope',
+      title: t('Connect Device'),
+      description: t('Pair and connect your Agni soil sensor device via Bluetooth.'),
+      color: '#169344',
     },
     {
-      icon: 'brain.head.profile',
-      title: 'AI Processing',
-      description: 'Machine learning algorithms trained on local soil data'
+      number: 2,
+      icon: 'bluetooth',
+      title: t('Connect to Saathi'),
+      description: t('Seamlessly transfer data to our AI platform via Bluetooth connectivity.'),
+      color: '#2563eb', // Amber
     },
     {
-      icon: 'globe.americas',
-      title: 'Local Language Support',
-      description: 'Recommendations in Odia, Hindi, and English with audio support'
-    }
+      number: 3,
+      icon: 'brain',
+      title: t('Get AI Recommendations'),
+      description: t('Receive personalized fertilizer suggestions and farming advice in your language.'),
+      color: '#ca8903', // Green
+    },
   ];
 
   const FORMSPREE_ENDPOINT_URL = process.env.EXPO_PUBLIC_FORMSPREE_URL; 
@@ -152,8 +159,8 @@ export default function AboutScreen() {
             <ThemedText style={styles.sectionTitle}>{t('How Our Technology Works')}</ThemedText>
             {features.map((feature, index) => (
               <View key={index} style={[styles.featureCard, { backgroundColor: Colors[colorScheme ?? 'light'].lightGray }]}>
-                <View style={[styles.featureIcon, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}>
-                  <IconSymbol size={24} name={feature.icon as any} color="white" />
+                <View style={[styles.featureIcon, { backgroundColor: feature.color, opacity: 0.5 }]}>
+                  <MaterialCommunityIcons name={feature.icon as any} size={32} color={feature.color} />
                 </View>
                 <View style={styles.featureContent}>
                   <ThemedText style={styles.featureTitle}>{t(feature.title)}</ThemedText>
@@ -229,6 +236,14 @@ export default function AboutScreen() {
                 <ThemedText style={styles.contactText}>saathi.ai.innovation@gmail.com</ThemedText>
               </View>
             </View>
+
+            <TouchableOpacity
+              style={[styles.moreInfoButton, { backgroundColor: Colors[colorScheme ?? 'light'].primary }]}
+              onPress={() => Linking.openURL('https://agni.saathiai.org/')}
+            >
+              <IconSymbol size={20} name="globe" color="white" />
+              <ThemedText style={styles.moreInfoButtonText}>For more info</ThemedText>
+            </TouchableOpacity>
 
             {status.type && (
               <View style={[styles.statusBox, { backgroundColor: statusBackgroundColor, borderColor: statusBorderColor }]}>
@@ -472,6 +487,20 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   submitButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  moreInfoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 20,
+    gap: 8,
+  },
+  moreInfoButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
